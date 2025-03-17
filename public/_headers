@@ -1,0 +1,4 @@
+/api/kml
+  Cache-Control: public, max-age=86400
+  Content-Type: application/vnd.google-earth.kml+xml
+  Access-Control-Allow-Origin: *

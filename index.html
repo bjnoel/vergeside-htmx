@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <title>Vergeside - Find Your Pickup Date</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker@3.1.0/daterangepicker.css">
+    <link rel="stylesheet" href="css/site.css">
+    
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">Vergeside</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="index.html">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="about.html">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="faq.html">FAQ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="contact.html">Contact</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="donate.html">Donate</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="row">
+                <div class="col-md-8">
+                    <h1>Vergeside Pickup Map</h1>
+                    <p>Find when your next vergeside collection is happening. Select a date range below.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="daterange">Date Range:</label>
+                                <input type="text" class="form-control" id="daterange" name="daterange">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="council">Council:</label>
+                                <select class="form-control" id="council" name="council">
+                                    <option value="all">All Councils</option>
+                                    <!-- Will be populated from Supabase -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="map-container" class="my-4" style="height: 500px;">
+                        <div id="map" style="height: 100%;"></div>
+                    </div>
+                    
+                    <div id="map-legend" class="card mt-3">
+                        <div class="card-header">Legend</div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #FF0000;"></span>
+                                        <span>Today</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #FFA500;"></span>
+                                        <span>This Week</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #FFFF00;"></span>
+                                        <span>Next Week</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #008000;"></span>
+                                        <span>In 2 Weeks</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #0000FF;"></span>
+                                        <span>In 3 Weeks</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="legend-item">
+                                        <span class="legend-color" style="background-color: #800080;"></span>
+                                        <span>In 4+ Weeks</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>About Vergeside Pickups</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>
+                                Vergeside pickups (also known as bulk rubbish collection) are when your local council 
+                                collects large household items from the front of your property.
+                            </p>
+                            <p>
+                                This service is typically offered 1-4 times per year depending on your local council.
+                            </p>
+                            <p>
+                                Use this map to check when your next collection is scheduled, and plan accordingly.
+                            </p>
+                            <a href="about.html" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 Vergeside - <a href="contact.html">Contact</a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker@3.1.0/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    
+    <script src="js/config.js"></script>
+    <script src="js/kml-service.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/map-controller.js"></script>
+    <script src="js/site.js"></script>
+    
+    <!-- Google Maps API loads last -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCzF7ukLxzRdcoEpBpr-YFV_4hroVUYXqE&callback=initMap&loading=async"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "json-server": "^1.0.0-beta.3"
+  },
+  "name": "vergeside-htmx",
+  "version": "1.0.0",
+  "description": "A modern, client-side web application for tracking vergeside (bulk rubbish) pickup schedules in local councils. Built with HTML, CSS, JavaScript, HTMX, and Supabase.",
+  "main": "server.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
