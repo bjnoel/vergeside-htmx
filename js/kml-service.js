@@ -48,24 +48,17 @@ class KmlService {
 
     // Determines which color/style to use based on the pickup date
     getStyleForDate(pickupDate) {
-        const today = moment().startOf('day');
-        const pickup = moment(pickupDate).startOf('day');
+        // Use Perth timezone specified in CONFIG
+        const today = moment().utcOffset(CONFIG.TIMEZONE).startOf('day');
+        const pickup = moment(pickupDate).utcOffset(CONFIG.TIMEZONE).startOf('day');
         const daysUntilPickup = pickup.diff(today, 'days');
         
         if (daysUntilPickup < 0) {
             return 'default';
-        } else if (daysUntilPickup === 0) {
-            return 'today';
-        } else if (daysUntilPickup <= 7) {
-            return 'this_week';
-        } else if (daysUntilPickup <= 14) {
-            return 'next_week';
-        } else if (daysUntilPickup <= 21) {
-            return 'two_weeks';
-        } else if (daysUntilPickup <= 28) {
-            return 'three_weeks';
         } else {
-            return 'four_plus_weeks';
+            // Calculate which week we're in (0-14)
+            const weekIndex = Math.min(Math.floor(daysUntilPickup / 7), 14);
+            return `week_${weekIndex}`;
         }
     }
 

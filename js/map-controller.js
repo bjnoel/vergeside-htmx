@@ -96,9 +96,10 @@ class MapController {
             
             // Set default date range if not specified
             if (!this.startDate || !this.endDate) {
-                const today = moment().startOf('day');
+                // Use Perth timezone specified in CONFIG
+                const today = moment().utcOffset(CONFIG.TIMEZONE).startOf('day');
                 this.startDate = today.format(CONFIG.DEFAULT_DATE_FORMAT);
-                this.endDate = today.add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days').format(CONFIG.DEFAULT_DATE_FORMAT);
+                this.endDate = today.clone().add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days').format(CONFIG.DEFAULT_DATE_FORMAT);
             }
             
             this.debug('Loading areas with date range:', { startDate: this.startDate, endDate: this.endDate, councilId });
@@ -169,23 +170,23 @@ class MapController {
                             
                             // Get the appropriate color based on pickup date
                             const pickupDate = nextPickup.start_date;
-                            const today = moment().startOf('day');
-                            const pickup = moment(pickupDate).startOf('day');
+                            // Use Perth timezone specified in CONFIG
+                            const today = moment().utcOffset(CONFIG.TIMEZONE).startOf('day');
+                            const pickup = moment(pickupDate).utcOffset(CONFIG.TIMEZONE).startOf('day');
                             const daysUntilPickup = pickup.diff(today, 'days');
                             
+                            // Determine which color to use based on days until pickup
+                            // Following the 7-day increment logic from the C# code
                             let color = CONFIG.COLORS.DEFAULT;
-                            if (daysUntilPickup === 0) {
-                                color = CONFIG.COLORS.TODAY;
-                            } else if (daysUntilPickup > 0 && daysUntilPickup <= 7) {
-                                color = CONFIG.COLORS.THIS_WEEK;
-                            } else if (daysUntilPickup > 7 && daysUntilPickup <= 14) {
-                                color = CONFIG.COLORS.NEXT_WEEK;
-                            } else if (daysUntilPickup > 14 && daysUntilPickup <= 21) {
-                                color = CONFIG.COLORS.TWO_WEEKS;
-                            } else if (daysUntilPickup > 21 && daysUntilPickup <= 28) {
-                                color = CONFIG.COLORS.THREE_WEEKS;
-                            } else if (daysUntilPickup > 28) {
-                                color = CONFIG.COLORS.FOUR_PLUS_WEEKS;
+                            
+                            if (daysUntilPickup < 0) {
+                                // Past date
+                                color = CONFIG.COLORS.DEFAULT;
+                            } else {
+                                // Calculate which week we're in (0-14)
+                                // For the first 7 days (0-6), use WEEK_0 (red)
+                                const weekIndex = Math.min(Math.floor(daysUntilPickup / 7), 14);
+                                color = CONFIG.COLORS[`WEEK_${weekIndex}`] || CONFIG.COLORS.DEFAULT;
                             }
                             
                             // Create the polygon

@@ -3,20 +3,21 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize date range picker
     if (document.getElementById('daterange')) {
-        const today = moment();
-        const endDate = moment().add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days');
+        const today = moment().utcOffset(CONFIG.TIMEZONE);
+        const endDate = moment().utcOffset(CONFIG.TIMEZONE).add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days');
         
         $('#daterange').daterangepicker({
             startDate: today,
             endDate: endDate,
+            timeZone: 'Australia/Perth',
             locale: {
                 format: 'MMMM D, YYYY'
             },
             ranges: {
-                'Next Week': [moment(), moment().add(7, 'days')],
-                'Next 2 Weeks': [moment(), moment().add(14, 'days')],
-                'Next Month': [moment(), moment().add(1, 'month')],
-                'Next 2 Months': [moment(), moment().add(2, 'months')]
+                'Next Week': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(7, 'days')],
+                'Next 2 Weeks': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(14, 'days')],
+                'Next Month': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(1, 'month')],
+                'Next 2 Months': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(2, 'months')]
             }
         });
         
