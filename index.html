@@ -28,7 +28,7 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="index.html">Home</a>
+                            <a class="nav-link text-dark" href="index.html">Map</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" href="about.html">About</a>
@@ -56,21 +56,13 @@
                     <p>Find when your next vergeside collection is happening. Select a date range below.</p>
                     
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="form-group mb-3">
                                 <label for="daterange">Date Range:</label>
                                 <input type="text" class="form-control" id="daterange" name="daterange">
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label for="council">Council:</label>
-                                <select class="form-control" id="council" name="council">
-                                    <option value="all">All Councils</option>
-                                    <!-- Will be populated from Supabase -->
-                                </select>
-                            </div>
-                        </div>
+
                     </div>
                     
                     <div id="map-container" class="my-4" style="height: 500px;">

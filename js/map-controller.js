@@ -7,7 +7,7 @@ class MapController {
         this.startDate = null;
         this.endDate = null;
         this.loadingDiv = null;
-        this.debugMode = true;
+        this.debugMode = false;
     }
 
     // Debug log
@@ -106,14 +106,10 @@ class MapController {
             // Show loading indicator
             this.showLoading();
             
-            // Try to generate and cache KML for this request
-            // This won't be used directly but will populate the cache
+            // Silently pre-populate KML cache in the background
             try {
-                this.debug('Generating KML to populate cache');
-                const kml = await kmlService.generateKml(this.startDate, this.endDate, councilId);
-                this.debug('KML generation complete, length:', kml ? kml.length : 0);
+                await kmlService.generateKml(this.startDate, this.endDate, councilId);
             } catch (kmlError) {
-                this.debug('Error generating KML:', kmlError);
                 // Continue with direct rendering even if KML generation fails
             }
             

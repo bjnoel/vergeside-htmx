@@ -26,7 +26,7 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" href="index.html">Home</a>
+                            <a class="nav-link text-dark" href="index.html">Map</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-dark active" href="about.html">About</a>
@@ -48,57 +48,90 @@
 
     <div class="container">
         <main role="main" class="pb-3">
-            <h1>About Vergeside Pickups</h1>
+            <h1>About Vergeside</h1>
             
-            <p>Vergeside pickups (also known as bulk rubbish collection) are when your local council collects large household items from the front of your property.</p>
-            
-            <p>This service is typically offered 1-4 times per year depending on your local council. This website helps you find out when your next collection is scheduled.</p>
-            
-            <h2 class="mt-4">Participating Councils</h2>
-            
-            <div id="council-list" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mt-3" hx-get="/api/councils.js" hx-trigger="load">
-                <!-- Will be populated from Supabase -->
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <p>Hey there, my name is <a href="https://www.bjnoel.com">Benedict</a>, I'm a Perth local.</p>
+                </div>
+                <div class="col-md-6">
+                    <h2>Our Mission</h2>
+                    <p>Vergeside.com.au aims to be the most comprehensive resource for finding bulk waste collection information across WA. We help residents easily discover when their next vergeside pickup is scheduled.</p>
+                    
+                    <p>Our user-friendly map interface shows you exactly when collections are happening in your area, making it simple to plan ahead and participate in this important waste disposal service.</p>
+                    
+                    <h2 class="mt-4">What Are Vergeside Collections?</h2>
+                    <p>Vergeside collections (also known as bulk rubbish collections, hard waste, or kerbside collections) are special waste collection services provided by local councils where residents can place large household items on the verge in front of their property for collection.</p>
+                    
+                    <p>These collections allow residents to dispose of items too large for regular bin collection, such as furniture, appliances, and garden waste. The service frequency varies by council, usually occurring between 1-4 times per year.</p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h2>Why I Created This Service</h2>
+                    <p>
+                        This site was created to improve upon an <a href="http://blog.mcglew.net/2011/09/perth-vergeside-collection-map.html" alt="Old Perth vergeside pickup map">existing vergeside pickup map</a> that was created by Matt McGlew in 2011. The map proved to be very popular, and at the time of writing has been viewed over 500,000 times. However, I saw an opportunity to improve upon this map in couple of ways:
+                    </p>
+                    
+                    <ul class="mt-3">
+                        <li>There was no search by date functionality in the map</li>
+                        <li>It was difficult to update the map with new information</li>
+                    </ul>
+                    
+                    <p class="mt-3">The platform centralizes this information and presents it visually, making it much easier for residents to plan their waste disposal efficiently.</p>
+                    
+                    <div class="card mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Our Goals</h5>
+                            <ul class="list-unstyled">
+                                <li>✅ Provide accurate, up-to-date collection information</li>
+                                <li>✅ Make finding vergeside pickup dates simple and intuitive</li>
+                                <li>✅ Cover as many Australian council areas as possible</li>
+                                <li>✅ Help reduce illegal dumping by improving access to collection information</li>
+                                <li>✅ Promote responsible waste management practices</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <h2 class="mt-5">How to Use This Service</h2>
+            <hr class="my-5">
             
-            <div class="row mt-3">
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">1. Find Your Area</h5>
-                            <p class="card-text">Use the map on the home page to locate your suburb or council area.</p>
+            <div class="row">
+                <div class="col-md-12">
+                    <h2>How Vergeside.com.au Works</h2>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">1. Visit the Map Page</h5>
+                                    <p class="card-text">Our color-coded system makes it easy to see when collections are happening near you.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">2. Check Collection Dates</h5>
+                                    <p class="card-text">Select a date range to view what collections are happening around Perth for a given time period.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">2. Check Collection Dates</h5>
-                            <p class="card-text">See when your area's next vergeside pickup is scheduled by looking at the color-coded map.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">3. Plan Accordingly</h5>
-                            <p class="card-text">Prepare your items for collection according to your council's guidelines.</p>
-                        </div>
+                    
+                    <div class="alert alert-info mt-5">
+                        <h4 class="alert-heading">Data Accuracy</h4>
+                        <p>The pickup dates and pickup areas has been pulled from individual council websites as well as from Nearmaps.</p>
+                        <p>However, councils may occasionally change collection schedules with limited notice. We always recommend verifying the information with your local council if you're planning a major cleanup.</p>
+                        <p>If you notice any discrepancies or have more recent information, please <a href="contact.html" class="alert-link">let us know</a> so we can update our database.</p>
                     </div>
                 </div>
             </div>
             
-            <h2 class="mt-5">About This Website</h2>
-            
-            <p>This website was created to provide a simple way for residents to check when their vergeside pickup is scheduled. The information is gathered from local council websites and updated regularly.</p>
-            
-            <p>If you find any incorrect information or would like to suggest improvements, please <a href="contact.html">contact us</a>.</p>
+            <div class="text-center mt-5">
+                <h2>Have Questions?</h2>
+                <p class="lead">Check out our <a href="faq.html">Frequently Asked Questions</a> or <a href="contact.html">contact us</a> if you need further assistance.</p>
+            </div>
             
         </main>
     </div>

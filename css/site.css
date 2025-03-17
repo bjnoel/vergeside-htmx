@@ -89,7 +89,12 @@ body {
     margin-bottom: 10px;
   }
   
+  #map-container {
+    height: 717px !important;
+    width: 100% !important;
+  }
+  
   #map {
-    height: 350px !important;
+    height: 100% !important;
   }
 }

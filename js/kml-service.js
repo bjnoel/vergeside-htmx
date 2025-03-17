@@ -3,7 +3,7 @@
 class KmlService {
     constructor() {
         this.styles = this.generateStyles();
-        this.debugMode = true; // Enable debug logging
+        this.debugMode = false; // Disable debug logging
     }
 
     // Debug log
@@ -479,13 +479,4 @@ class KmlService {
 // Create a singleton instance
 const kmlService = new KmlService();
 
-// Test cache system on page load
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        console.log('Testing KML cache system...');
-        const result = await kmlService.testCacheSystem();
-        console.log('Cache test result:', result ? 'SUCCESS' : 'FAILED');
-    } catch (err) {
-        console.error('Error testing cache:', err);
-    }
-});
+// Cache test disabled in production
