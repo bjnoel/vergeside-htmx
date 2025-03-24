@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <title>Councils - Vergeside</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/site.css">
+    
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">Vergeside</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="index.html">Map</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark active" href="council.html">Councils</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="about.html">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="faq.html">FAQ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="contact.html">Contact</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" href="donate.html">Donate</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            <h1>Council Information</h1>
+            <p class="lead">View all councils that provide bulk waste collection services.</p>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h2 class="mb-0 h5">Councils With Bulk Waste Collection</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="councils-table">
+                            <thead>
+                                <tr>
+                                    <th>Council Name</th>
+                                    <th>Council Website</th>
+                                    <th>Bulk Waste Information</th>
+                                </tr>
+                            </thead>
+                            <tbody id="councils-with-pickups">
+                                <!-- HTMX will load content here -->
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0 h5">Councils Without Bulk Waste Collection</h2>
+                </div>
+                <div class="card-body">
+                    <p>The following councils don't currently offer bulk waste collection services:</p>
+                    <ul id="councils-without-pickups" class="list-group">
+                        <!-- HTMX will load content here -->
+                        <li class="list-group-item text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted mt-4">
+        <div class="container">
+            &copy; 2025 Vergeside - <a href="contact.html">Contact</a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script>
+        // Initialize when document is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Fetch all councils
+                const councils = await supabaseClient.getCouncils();
+                
+                // Split councils by has_pickups flag
+                const councilsWithPickups = councils.filter(council => council.has_pickups);
+                const councilsWithoutPickups = councils.filter(council => !council.has_pickups);
+                
+                // Render councils with pickups
+                const withPickupsTableBody = document.getElementById('councils-with-pickups');
+                withPickupsTableBody.innerHTML = '';
+                
+                if (councilsWithPickups.length > 0) {
+                    councilsWithPickups.forEach(council => {
+                        withPickupsTableBody.innerHTML += `
+                            <tr>
+                                <td>${council.name}</td>
+                                <td><a href="${council.council_url}" target="_blank" rel="noopener noreferrer">${council.council_url}</a></td>
+                                <td><a href="${council.bulk_waste_url}" target="_blank" rel="noopener noreferrer">Bulk Waste Information</a></td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    withPickupsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center">No councils with bulk waste collection found.</td>
+                        </tr>
+                    `;
+                }
+                
+                // Render councils without pickups
+                const withoutPickupsList = document.getElementById('councils-without-pickups');
+                withoutPickupsList.innerHTML = '';
+                
+                if (councilsWithoutPickups.length > 0) {
+                    councilsWithoutPickups.forEach(council => {
+                        withoutPickupsList.innerHTML += `
+                            <li class="list-group-item">
+                                <a href="${council.council_url}" target="_blank" rel="noopener noreferrer">${council.name}</a>
+                            </li>
+                        `;
+                    });
+                } else {
+                    withoutPickupsList.innerHTML = `
+                        <li class="list-group-item text-center">No councils without bulk waste collection found.</li>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading councils data:', error);
+                document.getElementById('councils-with-pickups').innerHTML = `
+                    <tr>
+                        <td colspan="3" class="text-center text-danger">Error loading council data. Please try again later.</td>
+                    </tr>
+                `;
+                document.getElementById('councils-without-pickups').innerHTML = `
+                    <li class="list-group-item text-center text-danger">Error loading council data. Please try again later.</li>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
