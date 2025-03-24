@@ -121,23 +121,7 @@ class SupabaseClient {
         return data || [];
     }
 
-    // Contact form
-    async submitContactForm(contactData) {
-        const { data, error } = await this.supabase
-            .from('contact_submission')
-            .insert([{ 
-                ...contactData, 
-                created_at: new Date().toISOString() 
-            }])
-            .select();
-            
-        if (error) {
-            console.error('Error submitting contact form:', error);
-            return null;
-        }
-        
-        return data;
-    }
+    // Contact form is now handled by FormSubmit.co
 }
 
 // Create a singleton instance
