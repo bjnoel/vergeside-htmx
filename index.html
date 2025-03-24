@@ -164,6 +164,8 @@
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.10/dist/htmx.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
     
+    <!-- Environment Configuration -->
+    <script src="js/env-config.js"></script>
     <script src="js/config.js"></script>
     <script src="js/kml-service.js"></script>
     <script src="js/supabase-client.js"></script>
@@ -171,6 +173,15 @@
     <script src="js/site.js"></script>
     
     <!-- Google Maps API loads last -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCzF7ukLxzRdcoEpBpr-YFV_4hroVUYXqE&callback=initMap&loading=async"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create a script element for Google Maps API
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${CONFIG.MAPS_API_KEY}&callback=initMap&loading=async`;
+            script.async = true;
+            script.defer = true;
+            document.body.appendChild(script);
+        });
+    </script>
 </body>
 </html>
