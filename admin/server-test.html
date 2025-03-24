@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Test - Vergeside Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Vergeside Server Test</h4>
+            </div>
+            <div class="card-body">
+                <h5>Server Connectivity Test</h5>
+                <p>This page helps diagnose server connectivity issues.</p>
+                
+                <div class="mb-4">
+                    <h6>API Health Check</h6>
+                    <button id="check-health" class="btn btn-primary">Check Server Health</button>
+                </div>
+                
+                <div id="results" class="mt-4">
+                    <div class="alert alert-info">
+                        Click the button above to test server connectivity.
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Direct API Endpoints:</h6>
+                    <ul>
+                        <li><a href="/api/healthcheck" target="_blank">/api/healthcheck</a> - Check if server is running</li>
+                        <li><a href="/api/auth/debug" target="_blank">/api/auth/debug</a> - Check auth API</li>
+                        <li><a href="/api/auth/login" target="_blank">/api/auth/login</a> - Auth0 login</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="/admin/index.html" class="btn btn-outline-secondary">Back to Admin</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkHealthBtn = document.getElementById('check-health');
+            const resultsDiv = document.getElementById('results');
+            
+            checkHealthBtn.addEventListener('click', async function() {
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <div>Checking server health...</div>
+                        </div>
+                    </div>
+                `;
+                
+                try {
+                    const response = await fetch('/api/healthcheck');
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultsDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <h6>Server is running! ✅</h6>
+                                <p>Status: ${data.status}</p>
+                                <p>Message: ${data.message}</p>
+                                <p>Timestamp: ${data.timestamp}</p>
+                                <h6>Available Routes:</h6>
+                                <ul>
+                                    ${data.routes.map(route => `<li>${route}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    } else {
+                        const text = await response.text();
+                        resultsDiv.innerHTML = `
+                            <div class="alert alert-warning">
+                                <h6>Server responded with status: ${response.status}</h6>
+                                <p>Response:</p>
+                                <pre>${text}</pre>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>Connection Error! ❌</h6>
+                            <p>Error: ${error.message}</p>
+                            <p>This could indicate the server is not running or there's a network issue.</p>
+                            <h6>Troubleshooting steps:</h6>
+                            <ol>
+                                <li>Make sure the server is running with <code>npm start</code></li>
+                                <li>Check if the server is running on the correct port (default: 3000)</li>
+                                <li>Look for error messages in the server console</li>
+                                <li>Check browser console for additional error details</li>
+                            </ol>
+                        </div>
+                    `;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

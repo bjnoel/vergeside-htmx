@@ -1,0 +1,117 @@
+/* Admin CSS Styles */
+
+.admin-header {
+    background-color: #f8f9fa;
+    padding: 15px 0;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.admin-card {
+    transition: transform 0.2s;
+    margin-bottom: 20px;
+    height: 100%;
+}
+
+.admin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 100px auto;
+}
+
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    width: 250px;
+}
+
+.sidebar-sticky {
+    position: relative;
+    top: 0;
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+    padding: 0.75rem 1rem;
+}
+
+.sidebar .nav-link.active {
+    color: #007bff;
+}
+
+.sidebar .nav-link:hover {
+    color: #007bff;
+}
+
+.sidebar-heading {
+    font-size: .75rem;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    color: #6c757d;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        width: 100%;
+        position: relative;
+        padding-top: 0;
+        height: auto;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+.action-buttons .btn {
+    margin-right: 5px;
+}
+
+.card-hover:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}

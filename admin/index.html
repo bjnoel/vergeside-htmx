@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vergeside Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Login Container (will be shown if not authenticated) -->
+    <div id="login-container" class="login-container d-none">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Vergeside Admin</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="/images/favicon-32x32.png" alt="Vergeside Logo" class="mb-3">
+                    <h5>Admin Dashboard Login</h5>
+                    <p class="text-muted">Please sign in with your admin account</p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <small>Only authorized administrators can access this area. Please use your Auth0 account.</small>
+                </div>
+                
+                <div id="login-message" class="alert alert-danger d-none"></div>
+                <div id="debug-info" class="alert alert-info d-none">
+                    <h6>Debug Information</h6>
+                    <p id="debug-content"></p>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="/api/auth/login" class="btn btn-primary">
+                        Sign In
+                    </a>
+                    <a href="/" class="btn btn-outline-secondary">
+                        Back to Website
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard (will be shown if authenticated) -->
+    <div id="admin-dashboard" class="d-none">
+        <div class="admin-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="m-0">Vergeside Admin Dashboard</h2>
+                    <div>
+                        <span id="user-email" class="me-3"></span>
+                        <button id="logout-btn" class="btn btn-outline-secondary btn-sm">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-building mb-3 text-primary" viewBox="0 0 16 16">
+                                <path d="M4 2.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v10a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-10zm.5.5v9h6v-9h-6z"/>
+                                <path d="M2 2a2 2 0 0 0-2 2v1h16V4a2 2 0 0 0-2-2H2zm14 3H0v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5z"/>
+                            </svg>
+                            <h4>Manage Councils</h4>
+                            <p>Add, edit, or remove council information.</p>
+                            <a href="/admin/councils.html" class="btn btn-primary">Manage Councils</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-geo-alt mb-3 text-success" viewBox="0 0 16 16">
+                                <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"/>
+                                <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                            </svg>
+                            <h4>Manage Areas</h4>
+                            <p>Define and modify area boundaries.</p>
+                            <a href="/admin/areas.html" class="btn btn-success">Manage Areas</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card admin-card">
+                        <div class="card-body text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-calendar-event mb-3 text-info" viewBox="0 0 16 16">
+                                <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z"/>
+                                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/>
+                            </svg>
+                            <h4>Manage Pickups</h4>
+                            <p>Schedule and update pickup dates.</p>
+                            <a href="/admin/pickups.html" class="btn btn-info">Manage Pickups</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Quick Stats</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <h3 id="council-count">-</h3>
+                                    <p class="text-muted">Councils</p>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h3 id="area-count">-</h3>
+                                    <p class="text-muted">Areas</p>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <h3 id="pickup-count">-</h3>
+                                    <p class="text-muted">Pickups</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Upcoming Pickups</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="upcoming-pickups">
+                                <p class="text-center text-muted">Loading upcoming pickups...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    <script src="/js/env-config.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/admin/js/admin-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check for login success or error parameters in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const message = urlParams.get('message');
+            const login = urlParams.get('login');
+            
+            if (error) {
+                const loginMessage = document.getElementById('login-message');
+                loginMessage.textContent = message || `Authentication error: ${error}`;
+                loginMessage.classList.remove('d-none');
+                
+                // Show debug info if available
+                const debugInfo = urlParams.get('debug');
+                if (debugInfo) {
+                    const debugElement = document.getElementById('debug-info');
+                    const debugContent = document.getElementById('debug-content');
+                    debugContent.textContent = debugInfo;
+                    debugElement.classList.remove('d-none');
+                }
+            } else if (login === 'success') {
+                showToast('Login successful!', 'success');
+            }
+            
+            const loadingElement = document.getElementById('loading');
+            const loginContainer = document.getElementById('login-container');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            const userEmail = document.getElementById('user-email');
+            const logoutBtn = document.getElementById('logout-btn');
+            const councilCount = document.getElementById('council-count');
+            const areaCount = document.getElementById('area-count');
+            const pickupCount = document.getElementById('pickup-count');
+            const upcomingPickups = document.getElementById('upcoming-pickups');
+            
+            // Check if user is already authenticated
+            async function checkAuthentication() {
+                try {
+                    const response = await fetch('/api/auth/check');
+                    const data = await response.json();
+                    
+                    if (data.authenticated) {
+                        showDashboard(data);
+                    } else {
+                        showLogin();
+                    }
+                } catch (error) {
+                    console.error('Error checking authentication:', error);
+                    showLogin();
+                } finally {
+                    loadingElement.classList.add('d-none');
+                }
+            }
+            
+            // Initial check
+            checkAuthentication();
+            
+            // Show login screen
+            function showLogin() {
+                loginContainer.classList.remove('d-none');
+                adminDashboard.classList.add('d-none');
+            }
+            
+            // Show dashboard
+            function showDashboard(userData) {
+                loginContainer.classList.add('d-none');
+                adminDashboard.classList.remove('d-none');
+                
+                // Try to get user data from cookie if not provided
+                if (!userData || !userData.email) {
+                    try {
+                        const adminAuthCookie = document.cookie
+                            .split('; ')
+                            .find(row => row.startsWith('admin_auth='))
+                            ?.split('=')[1];
+                            
+                        if (adminAuthCookie) {
+                            userData = JSON.parse(decodeURIComponent(adminAuthCookie));
+                        }
+                    } catch (e) {
+                        console.error('Error parsing admin_auth cookie:', e);
+                    }
+                }
+                
+                // Set user email if available
+                if (userData && userData.email) {
+                    userEmail.textContent = userData.email;
+                }
+                
+                // Load dashboard data
+                loadDashboardData();
+            }
+            
+            // Load dashboard data
+            async function loadDashboardData() {
+                try {
+                    // Get counts
+                    const [councilData, areaData, pickupData] = await Promise.all([
+                        adminAuth.supabase.from('council').select('count').single(),
+                        adminAuth.supabase.from('area').select('count').single(),
+                        adminAuth.supabase.from('area_pickup').select('count').single()
+                    ]);
+                    
+                    // Update counts on the dashboard
+                    councilCount.textContent = councilData.data?.count || 0;
+                    areaCount.textContent = areaData.data?.count || 0;
+                    pickupCount.textContent = pickupData.data?.count || 0;
+                    
+                    // Get upcoming pickups
+                    const today = new Date().toISOString().split('T')[0];
+                    const oneMonthLater = new Date();
+                    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+                    const oneMonthFromNow = oneMonthLater.toISOString().split('T')[0];
+                    
+                    const { data: pickups, error } = await adminAuth.supabase
+                        .from('area_pickup')
+                        .select(`
+                            id,
+                            start_date,
+                            end_date,
+                            area (
+                                id,
+                                name,
+                                council (
+                                    id,
+                                    name
+                                )
+                            )
+                        `)
+                        .gte('start_date', today)
+                        .lte('start_date', oneMonthFromNow)
+                        .order('start_date', { ascending: true })
+                        .limit(5);
+                    
+                    if (error) {
+                        console.error('Error fetching pickups:', error);
+                        upcomingPickups.innerHTML = '<p class="text-center text-danger">Error loading pickups</p>';
+                        return;
+                    }
+                    
+                    if (pickups.length === 0) {
+                        upcomingPickups.innerHTML = '<p class="text-center text-muted">No upcoming pickups in the next month</p>';
+                    } else {
+                        let html = '<ul class="list-group">';
+                        
+                        pickups.forEach(pickup => {
+                            const startDate = new Date(pickup.start_date).toLocaleDateString();
+                            const endDate = pickup.end_date ? new Date(pickup.end_date).toLocaleDateString() : 'N/A';
+                            
+                            html += `
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>${pickup.area.name}</strong>
+                                            <span class="text-muted"> (${pickup.area.council.name})</span>
+                                        </div>
+                                        <span class="badge bg-primary">${startDate} - ${endDate}</span>
+                                    </div>
+                                </li>
+                            `;
+                        });
+                        
+                        html += '</ul>';
+                        upcomingPickups.innerHTML = html;
+                    }
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                    showToast('Error loading dashboard data', 'danger');
+                }
+            }
+            
+            // Logout button
+            logoutBtn.addEventListener('click', () => {
+                window.location.href = '/api/auth/logout';
+            });
+            
+            // Show toast notification
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 3000
+                });
+                
+                bsToast.show();
+                
+                // Remove toast after it's hidden
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

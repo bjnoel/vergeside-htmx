@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Councils - Vergeside Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="m-0">Manage Councils</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/index.html">Dashboard</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Councils</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <span id="user-email" class="me-3"></span>
+                    <button id="logout-btn" class="btn btn-outline-secondary btn-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Council Form -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Add New Council</h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
+                    Hide Form
+                </button>
+            </div>
+            <div class="card-body" id="council-form-container">
+                <form id="council-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="council-name" class="form-label">Council Name*</label>
+                            <input type="text" class="form-control" id="council-name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="council-website" class="form-label">Website URL</label>
+                            <input type="url" class="form-control" id="council-website" placeholder="https://example.com">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="council-info" class="form-label">Additional Information</label>
+                        <textarea class="form-control" id="council-info" rows="3" placeholder="Enter any notes or additional information about this council..."></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="council-active" checked>
+                        <label class="form-check-label" for="council-active">
+                            Active
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Council</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Councils Table -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Council List</h5>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="search-input" placeholder="Search councils...">
+                        <button class="btn btn-outline-secondary" type="button" id="search-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Website</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="councils-table">
+                            <!-- Councils will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-councils" class="alert alert-info d-none">
+                    No councils found. Add a new council using the form above.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Council Modal -->
+    <div class="modal fade" id="edit-council-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Council</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-council-form">
+                        <input type="hidden" id="edit-id">
+                        <div class="mb-3">
+                            <label for="edit-name" class="form-label">Council Name*</label>
+                            <input type="text" class="form-control" id="edit-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-website" class="form-label">Website URL</label>
+                            <input type="url" class="form-control" id="edit-website">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-info" class="form-label">Additional Information</label>
+                            <textarea class="form-control" id="edit-info" rows="3"></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="edit-active">
+                            <label class="form-check-label" for="edit-active">
+                                Active
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-council-btn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this council? This action cannot be undone.</p>
+                    <p class="text-danger">Warning: Deleting a council will also delete all associated areas and pickup schedules.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    <script src="/js/env-config.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/admin/js/admin-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Elements
+            const loadingElement = document.getElementById('loading');
+            const userEmail = document.getElementById('user-email');
+            const logoutBtn = document.getElementById('logout-btn');
+            const councilsTable = document.getElementById('councils-table');
+            const noCouncils = document.getElementById('no-councils');
+            const councilForm = document.getElementById('council-form');
+            const toggleFormBtn = document.getElementById('toggle-form-btn');
+            const councilFormContainer = document.getElementById('council-form-container');
+            const searchInput = document.getElementById('search-input');
+            const searchBtn = document.getElementById('search-btn');
+            
+            // Modal elements
+            const editCouncilModal = new bootstrap.Modal(document.getElementById('edit-council-modal'));
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirm-modal'));
+            const saveCouncilBtn = document.getElementById('save-council-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            
+            let deleteCouncilId = null;
+            
+            // Wait for authentication to be initialized
+            await adminAuth.waitForInitialization();
+            
+            // Check if user is authenticated
+            if (!adminAuth.isAdmin()) {
+                window.location.href = '/admin/index.html';
+                return;
+            }
+            
+            // Set user email
+            userEmail.textContent = adminAuth.getUser().email;
+            
+            // Hide loading screen
+            loadingElement.classList.add('d-none');
+            
+            // Load councils
+            loadCouncils();
+            
+            // Load councils from database
+            async function loadCouncils(searchTerm = '') {
+                showLoading();
+                
+                let query = adminAuth.supabase
+                    .from('council')
+                    .select('*')
+                    .order('name');
+                
+                if (searchTerm) {
+                    query = query.ilike('name', `%${searchTerm}%`);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    showToast('Error loading councils: ' + error.message, 'danger');
+                    hideLoading();
+                    return;
+                }
+                
+                // Display councils in table
+                councilsTable.innerHTML = '';
+                
+                if (data.length === 0) {
+                    noCouncils.classList.remove('d-none');
+                } else {
+                    noCouncils.classList.add('d-none');
+                    
+                    data.forEach(council => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${council.id}</td>
+                            <td>${council.name}</td>
+                            <td>
+                                ${council.website ? 
+                                    `<a href="${council.website}" target="_blank">${council.website}</a>` : 
+                                    '<span class="text-muted">None</span>'}
+                            </td>
+                            <td>
+                                ${council.active ? 
+                                    '<span class="badge bg-success">Active</span>' : 
+                                    '<span class="badge bg-secondary">Inactive</span>'}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-btn" data-id="${council.id}">
+                                    Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-btn" data-id="${council.id}">
+                                    Delete
+                                </button>
+                            </td>
+                        `;
+                        councilsTable.appendChild(row);
+                    });
+                    
+                    // Add event listeners to buttons
+                    document.querySelectorAll('.edit-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = e.target.getAttribute('data-id');
+                            openEditModal(id);
+                        });
+                    });
+                    
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = e.target.getAttribute('data-id');
+                            openDeleteConfirmation(id);
+                        });
+                    });
+                }
+                
+                hideLoading();
+            }
+            
+            // Add new council
+            async function addCouncil(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('council-name').value.trim();
+                const website = document.getElementById('council-website').value.trim();
+                const info = document.getElementById('council-info').value.trim();
+                const active = document.getElementById('council-active').checked;
+                
+                if (!name) {
+                    showToast('Council name is required', 'warning');
+                    return;
+                }
+                
+                showLoading();
+                
+                const { data, error } = await adminAuth.supabase
+                    .from('council')
+                    .insert([
+                        { 
+                            name, 
+                            website: website || null, 
+                            info: info || null,
+                            active
+                        }
+                    ])
+                    .select();
+                
+                if (error) {
+                    showToast('Error adding council: ' + error.message, 'danger');
+                    hideLoading();
+                    return;
+                }
+                
+                showToast('Council added successfully', 'success');
+                councilForm.reset();
+                loadCouncils();
+            }
+            
+            // Open edit modal with council data
+            async function openEditModal(id) {
+                showLoading();
+                
+                const { data, error } = await adminAuth.supabase
+                    .from('council')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+                
+                if (error) {
+                    showToast('Error fetching council data: ' + error.message, 'danger');
+                    hideLoading();
+                    return;
+                }
+                
+                document.getElementById('edit-id').value = data.id;
+                document.getElementById('edit-name').value = data.name;
+                document.getElementById('edit-website').value = data.website || '';
+                document.getElementById('edit-info').value = data.info || '';
+                document.getElementById('edit-active').checked = data.active;
+                
+                hideLoading();
+                editCouncilModal.show();
+            }
+            
+            // Save council edits
+            async function saveCouncilChanges() {
+                const id = document.getElementById('edit-id').value;
+                const name = document.getElementById('edit-name').value.trim();
+                const website = document.getElementById('edit-website').value.trim();
+                const info = document.getElementById('edit-info').value.trim();
+                const active = document.getElementById('edit-active').checked;
+                
+                if (!name) {
+                    showToast('Council name is required', 'warning');
+                    return;
+                }
+                
+                showLoading();
+                editCouncilModal.hide();
+                
+                const { error } = await adminAuth.supabase
+                    .from('council')
+                    .update({ 
+                        name, 
+                        website: website || null, 
+                        info: info || null,
+                        active
+                    })
+                    .eq('id', id);
+                
+                if (error) {
+                    showToast('Error updating council: ' + error.message, 'danger');
+                    hideLoading();
+                    return;
+                }
+                
+                showToast('Council updated successfully', 'success');
+                loadCouncils();
+            }
+            
+            // Open delete confirmation modal
+            function openDeleteConfirmation(id) {
+                deleteCouncilId = id;
+                confirmModal.show();
+            }
+            
+            // Delete council
+            async function deleteCouncil() {
+                if (!deleteCouncilId) return;
+                
+                showLoading();
+                confirmModal.hide();
+                
+                const { error } = await adminAuth.supabase
+                    .from('council')
+                    .delete()
+                    .eq('id', deleteCouncilId);
+                
+                if (error) {
+                    showToast('Error deleting council: ' + error.message, 'danger');
+                    hideLoading();
+                    return;
+                }
+                
+                showToast('Council deleted successfully', 'success');
+                deleteCouncilId = null;
+                loadCouncils();
+            }
+            
+            // Toggle form visibility
+            function toggleFormVisibility() {
+                if (councilFormContainer.style.display === 'none') {
+                    councilFormContainer.style.display = 'block';
+                    toggleFormBtn.textContent = 'Hide Form';
+                } else {
+                    councilFormContainer.style.display = 'none';
+                    toggleFormBtn.textContent = 'Show Form';
+                }
+            }
+            
+            // Search councils
+            function searchCouncils() {
+                const searchTerm = searchInput.value.trim();
+                loadCouncils(searchTerm);
+            }
+            
+            // Show loading overlay
+            function showLoading() {
+                loadingElement.classList.remove('d-none');
+            }
+            
+            // Hide loading overlay
+            function hideLoading() {
+                loadingElement.classList.add('d-none');
+            }
+            
+            // Show toast notification
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 3000
+                });
+                
+                bsToast.show();
+                
+                // Remove toast after it's hidden
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                });
+            }
+            
+            // Event listeners
+            logoutBtn.addEventListener('click', async () => {
+                await adminAuth.signOut();
+            });
+            
+            councilForm.addEventListener('submit', addCouncil);
+            saveCouncilBtn.addEventListener('click', saveCouncilChanges);
+            confirmDeleteBtn.addEventListener('click', deleteCouncil);
+            toggleFormBtn.addEventListener('click', toggleFormVisibility);
+            searchBtn.addEventListener('click', searchCouncils);
+            searchInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    searchCouncils();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
