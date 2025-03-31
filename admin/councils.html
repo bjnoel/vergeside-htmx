@@ -221,7 +221,7 @@
             const editCouncilModal = new bootstrap.Modal(document.getElementById('edit-council-modal'));
             const confirmModal = new bootstrap.Modal(document.getElementById('confirm-modal'));
             const saveCouncilBtn = document.getElementById('save-council-btn');
-            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-deactivate-btn');
             
             let deleteCouncilId = null;
             
@@ -247,70 +247,78 @@
             async function loadCouncils(searchTerm = '') {
                 showLoading();
                 
-                let query = adminAuth.supabase
-                    .from('council')
-                    .select('*')
-                    .order('name');
-                
-                if (searchTerm) {
-                    query = query.ilike('name', `%${searchTerm}%`);
-                }
-                
-                const { data, error } = await query;
-                
-                if (error) {
+                try {
+                    // Use the server API endpoint instead of direct Supabase access
+                    const response = await fetch('/api/admin/council');
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Error loading councils');
+                    }
+                    
+                    const result = await response.json();
+                    const data = result.data || [];
+                    
+                    // Filter by search term if provided
+                    let filteredData = data;
+                    if (searchTerm) {
+                        filteredData = data.filter(council => 
+                            council.name.toLowerCase().includes(searchTerm.toLowerCase())
+                        );
+                    }
+                    
+                    // Display councils in table
+                    councilsTable.innerHTML = '';
+                    
+                    if (filteredData.length === 0) {
+                        noCouncils.classList.remove('d-none');
+                    } else {
+                        noCouncils.classList.add('d-none');
+                        
+                        filteredData.forEach(council => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${council.id}</td>
+                                <td>${council.name}</td>
+                                <td>
+                                    ${council.council_url ? 
+                                        `<a href="${council.council_url}" target="_blank">${council.council_url}</a>` : 
+                                        '<span class="text-muted">None</span>'}
+                                </td>
+                                <td>
+                                    ${council.bulk_waste_url ? 
+                                        `<a href="${council.bulk_waste_url}" target="_blank">${council.bulk_waste_url}</a>` : 
+                                        '<span class="text-muted">None</span>'}
+                                </td>
+                                <td>
+                                    ${council.has_pickups ? 
+                                        '<span class="badge bg-success">Yes</span>' : 
+                                        '<span class="badge bg-secondary">No</span>'}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-btn" data-id="${council.id}">
+                                        Edit
+                                    </button>
+                                </td>
+                            `;
+                            councilsTable.appendChild(row);
+                        });
+                        
+                        // Add event listeners to buttons
+                        document.querySelectorAll('.edit-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const id = e.target.getAttribute('data-id');
+                                openEditModal(id);
+                            });
+                        });
+                    }
+                    
+                    hideLoading();
+                } catch (error) {
+                    console.error('Error loading councils:', error);
                     showToast('Error loading councils: ' + error.message, 'danger');
                     hideLoading();
-                    return;
                 }
-                
-                // Display councils in table
-                councilsTable.innerHTML = '';
-                
-                if (data.length === 0) {
-                    noCouncils.classList.remove('d-none');
-                } else {
-                    noCouncils.classList.add('d-none');
-                    
-                    data.forEach(council => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${council.id}</td>
-                            <td>${council.name}</td>
-                            <td>
-                                ${council.council_url ? 
-                                    `<a href="${council.council_url}" target="_blank">${council.council_url}</a>` : 
-                                    '<span class="text-muted">None</span>'}
-                            </td>
-                            <td>
-                                ${council.bulk_waste_url ? 
-                                    `<a href="${council.bulk_waste_url}" target="_blank">${council.bulk_waste_url}</a>` : 
-                                    '<span class="text-muted">None</span>'}
-                            </td>
-                            <td>
-                                ${council.has_pickups ? 
-                                    '<span class="badge bg-success">Yes</span>' : 
-                                    '<span class="badge bg-secondary">No</span>'}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-id="${council.id}">
-                                    Edit
-                                </button>
-                            </td>
-                        `;
-                        councilsTable.appendChild(row);
-                    });
-                    
-                    // Add event listeners to buttons
-                    document.querySelectorAll('.edit-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            const id = e.target.getAttribute('data-id');
-                            openEditModal(id);
-                        });
-                    });
-                }
-                
-                hideLoading();
             }
             
             // Add new council
@@ -331,57 +339,74 @@
                 
                 showLoading();
                 
-                const { data, error } = await adminAuth.supabase
-                    .from('council')
-                    .insert([
-                        { 
+                try {
+                    // Use fetch API to call the server endpoint
+                    const response = await fetch('/api/admin/council', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
                             name, 
                             council_url: website || null,
                             bulk_waste_url: bulkWasteUrl || null,
                             info: info || null,
                             has_pickups: hasPickups,
                             active
-                        }
-                    ])
-                    .select();
-                
-                if (error) {
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error adding council');
+                    }
+                    
+                    showToast('Council added successfully', 'success');
+                    councilForm.reset();
+                    loadCouncils();
+                } catch (error) {
+                    console.error('Error adding council:', error);
                     showToast('Error adding council: ' + error.message, 'danger');
+                } finally {
                     hideLoading();
-                    return;
                 }
-                
-                showToast('Council added successfully', 'success');
-                councilForm.reset();
-                loadCouncils();
             }
             
             // Open edit modal with council data
             async function openEditModal(id) {
                 showLoading();
                 
-                const { data, error } = await adminAuth.supabase
-                    .from('council')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-                
-                if (error) {
+                try {
+                    // Use fetch API to get council details
+                    const response = await fetch(`/api/admin/council/${id}`);
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error fetching council data');
+                    }
+                    
+                    const result = await response.json();
+                    const data = result.data;
+                    
+                    if (!data) {
+                        throw new Error('Council not found');
+                    }
+                    
+                    document.getElementById('edit-id').value = data.id;
+                    document.getElementById('edit-name').value = data.name;
+                    document.getElementById('edit-website').value = data.council_url || '';
+                    document.getElementById('edit-bulk-waste-url').value = data.bulk_waste_url || '';
+                    document.getElementById('edit-info').value = data.info || '';
+                    document.getElementById('edit-has-pickups').checked = data.has_pickups || false;
+                    document.getElementById('edit-active').checked = data.active;
+                    
+                    editCouncilModal.show();
+                } catch (error) {
+                    console.error('Error opening edit modal:', error);
                     showToast('Error fetching council data: ' + error.message, 'danger');
+                } finally {
                     hideLoading();
-                    return;
                 }
-                
-                document.getElementById('edit-id').value = data.id;
-                document.getElementById('edit-name').value = data.name;
-                document.getElementById('edit-website').value = data.council_url || '';
-                document.getElementById('edit-bulk-waste-url').value = data.bulk_waste_url || '';
-                document.getElementById('edit-info').value = data.info || '';
-                document.getElementById('edit-has-pickups').checked = data.has_pickups || false;
-                document.getElementById('edit-active').checked = data.active;
-                
-                hideLoading();
-                editCouncilModal.show();
             }
             
             // Save council edits
@@ -402,26 +427,36 @@
                 showLoading();
                 editCouncilModal.hide();
                 
-                const { error } = await adminAuth.supabase
-                    .from('council')
-                    .update({ 
-                        name, 
-                        council_url: website || null,
-                        bulk_waste_url: bulkWasteUrl || null,
-                        info: info || null,
-                        has_pickups: hasPickups,
-                        active
-                    })
-                    .eq('id', id);
-                
-                if (error) {
+                try {
+                    // Use fetch API to update council
+                    const response = await fetch(`/api/admin/council/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            name, 
+                            council_url: website || null,
+                            bulk_waste_url: bulkWasteUrl || null,
+                            info: info || null,
+                            has_pickups: hasPickups,
+                            active
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error updating council');
+                    }
+                    
+                    showToast('Council updated successfully', 'success');
+                    loadCouncils();
+                } catch (error) {
+                    console.error('Error updating council:', error);
                     showToast('Error updating council: ' + error.message, 'danger');
+                } finally {
                     hideLoading();
-                    return;
                 }
-                
-                showToast('Council updated successfully', 'success');
-                loadCouncils();
             }
             
             // Open delete confirmation modal
@@ -437,20 +472,26 @@
                 showLoading();
                 confirmModal.hide();
                 
-                const { error } = await adminAuth.supabase
-                    .from('council')
-                    .delete()
-                    .eq('id', deleteCouncilId);
-                
-                if (error) {
+                try {
+                    // Use fetch API to delete council
+                    const response = await fetch(`/api/admin/council/${deleteCouncilId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error deleting council');
+                    }
+                    
+                    showToast('Council deleted successfully', 'success');
+                    deleteCouncilId = null;
+                    loadCouncils();
+                } catch (error) {
+                    console.error('Error deleting council:', error);
                     showToast('Error deleting council: ' + error.message, 'danger');
+                } finally {
                     hideLoading();
-                    return;
                 }
-                
-                showToast('Council deleted successfully', 'success');
-                deleteCouncilId = null;
-                loadCouncils();
             }
             
             // Toggle form visibility

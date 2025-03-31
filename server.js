@@ -325,6 +325,12 @@ const requireAdminAuth = async (req, res, next) => {
 };
 
 // Admin API Routes
+// Import admin routes
+const adminRoutes = require('./api/admin')(adminSupabase, requireAdminAuth);
+
+// Use admin routes
+app.use('/api/admin/council', adminRoutes.council);
+app.use('/api/admin/area', adminRoutes.area);
 
 // Admin API for creating pickups
 app.post('/api/admin/area_pickup', requireAdminAuth, async (req, res) => {

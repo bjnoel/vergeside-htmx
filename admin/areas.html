@@ -236,16 +236,16 @@
             // Load councils from database
             async function loadCouncils() {
                 try {
-                    const { data, error } = await adminAuth.supabase
-                        .from('council')
-                        .select('*')
-                        .eq('active', true)
-                        .order('name');
+                    // Use fetch API to call the server endpoint
+                    const response = await fetch('/api/admin/council');
                     
-                    if (error) {
-                        showToast('Error loading councils: ' + error.message, 'danger');
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error loading councils');
                     }
+                    
+                    const result = await response.json();
+                    const data = result.data || [];
                     
                     // Populate council dropdowns
                     councilSelect.innerHTML = '<option value="">Select Council</option>';
@@ -273,28 +273,21 @@
                 showLoading();
                 
                 try {
-                    let query = adminAuth.supabase
-                        .from('area')
-                        .select(`
-                            *,
-                            council:council_id (
-                                id,
-                                name
-                            )
-                        `)
-                        .order('name');
-                    
+                    // Use fetch API to call the server endpoint
+                    let url = '/api/admin/area';
                     if (searchTerm) {
-                        query = query.ilike('name', `%${searchTerm}%`);
+                        url += `?search=${encodeURIComponent(searchTerm)}`;
                     }
                     
-                    const { data, error } = await query;
+                    const response = await fetch(url);
                     
-                    if (error) {
-                        showToast('Error loading areas: ' + error.message, 'danger');
-                        hideLoading();
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error loading areas');
                     }
+                    
+                    const result = await response.json();
+                    const data = result.data || [];
                     
                     // Display areas in table
                     areasTable.innerHTML = '';
@@ -372,21 +365,23 @@
                 showLoading();
                 
                 try {
-                    const { data, error } = await adminAuth.supabase
-                        .from('area')
-                        .insert([
-                            { 
-                                name, 
-                                council_id: councilId,
-                                description: description || null,
-                                active
-                            }
-                        ])
-                        .select();
+                    // Use fetch API to call the server endpoint
+                    const response = await fetch('/api/admin/area', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            name, 
+                            council_id: councilId,
+                            description: description || null,
+                            active
+                        })
+                    });
                     
-                    if (error) {
-                        showToast('Error adding area: ' + error.message, 'danger');
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error adding area');
                     }
                     
                     showToast('Area added successfully', 'success');
@@ -405,17 +400,16 @@
                 showLoading();
                 
                 try {
-                    const { data, error } = await adminAuth.supabase
-                        .from('area')
-                        .select('*')
-                        .eq('id', id)
-                        .single();
+                    // Use fetch API to get area details
+                    const response = await fetch(`/api/admin/area/${id}`);
                     
-                    if (error) {
-                        showToast('Error fetching area data: ' + error.message, 'danger');
-                        hideLoading();
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error fetching area data');
                     }
+                    
+                    const result = await response.json();
+                    const data = result.data;
                     
                     document.getElementById('edit-id').value = data.id;
                     document.getElementById('edit-name').value = data.name;
@@ -454,19 +448,23 @@
                 editAreaModal.hide();
                 
                 try {
-                    const { error } = await adminAuth.supabase
-                        .from('area')
-                        .update({ 
+                    // Use fetch API to update area
+                    const response = await fetch(`/api/admin/area/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
                             name, 
                             council_id: councilId,
                             description: description || null,
                             active
                         })
-                        .eq('id', id);
+                    });
                     
-                    if (error) {
-                        showToast('Error updating area: ' + error.message, 'danger');
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error updating area');
                     }
                     
                     showToast('Area updated successfully', 'success');
@@ -493,14 +491,14 @@
                 confirmModal.hide();
                 
                 try {
-                    const { error } = await adminAuth.supabase
-                        .from('area')
-                        .delete()
-                        .eq('id', deleteAreaId);
+                    // Use fetch API to delete area
+                    const response = await fetch(`/api/admin/area/${deleteAreaId}`, {
+                        method: 'DELETE'
+                    });
                     
-                    if (error) {
-                        showToast('Error deleting area: ' + error.message, 'danger');
-                        return;
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error deleting area');
                     }
                     
                     showToast('Area deleted successfully', 'success');
