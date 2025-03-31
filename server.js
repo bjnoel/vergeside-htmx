@@ -303,9 +303,18 @@ app.get('/api/auth/check', (req, res) => {
   });
 });
 
-// Handle all admin routes - serve admin/index.html
+// Serve static admin files directly if they exist, otherwise serve index.html
 app.get('/admin/*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+  const requestedPath = path.join(__dirname, req.path);
+  
+  // Check if the file exists
+  if (require('fs').existsSync(requestedPath) && require('fs').statSync(requestedPath).isFile()) {
+    // If file exists, serve it directly
+    res.sendFile(requestedPath);
+  } else {
+    // Otherwise, serve admin/index.html as a fallback
+    res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+  }
 });
 
 // Handle all other routes - serve index.html
