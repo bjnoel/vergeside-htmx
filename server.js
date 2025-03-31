@@ -34,7 +34,11 @@ const auth0Config = {
   callbackUrl: process.env.AUTH0_CALLBACK_URL || 'http://localhost:3000/api/auth/callback'
 };
 
-// Serve static files first
+// Serve static files with specific order of precedence
+// First, serve static files from admin directory specifically
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
+
+// Then serve other static files from root
 app.use(express.static(path.join(__dirname)));
 
 // API Routes
@@ -303,18 +307,14 @@ app.get('/api/auth/check', (req, res) => {
   });
 });
 
-// Serve static admin files directly if they exist, otherwise serve index.html
+// Only use this as a fallback for admin routes that aren't static files
 app.get('/admin/*', (req, res) => {
-  const requestedPath = path.join(__dirname, req.path);
-  
-  // Check if the file exists
-  if (require('fs').existsSync(requestedPath) && require('fs').statSync(requestedPath).isFile()) {
-    // If file exists, serve it directly
-    res.sendFile(requestedPath);
-  } else {
-    // Otherwise, serve admin/index.html as a fallback
-    res.sendFile(path.join(__dirname, 'admin', 'index.html'));
-  }
+  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
+});
+
+// Special route for /admin with no trailing slash
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
 
 // Handle all other routes - serve index.html
