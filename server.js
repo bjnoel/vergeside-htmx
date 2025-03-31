@@ -35,7 +35,6 @@ const auth0Config = {
 };
 
 // Serve static files with specific order of precedence
-// First, serve static files from admin directory specifically
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
 // Then serve other static files from root
@@ -50,99 +49,11 @@ app.get('/api/healthcheck', (req, res) => {
     timestamp: new Date().toISOString(),
     routes: [
       '/api/healthcheck',
-      '/api/auth/debug',
       '/api/auth/login',
       '/api/auth/callback',
       '/api/auth/logout'
     ]
   });
-});
-
-// Auth debug endpoint
-app.get('/api/auth/debug', (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'Auth API is working',
-    time: new Date().toISOString()
-  });
-});
-
-// Admin user registration endpoint (for testing only)
-app.get('/api/auth/register-admin', async (req, res) => {
-  try {
-    const { email } = req.query;
-    
-    if (!email) {
-      return res.status(400).json({ error: 'Email parameter is required' });
-    }
-    
-    console.log(`Attempting to register admin user: ${email}`);
-    
-    // Check if admin_users table exists
-    const { data: tableExists, error: tableError } = await supabase
-      .from('admin_users')
-      .select('count')
-      .limit(1);
-    
-    if (tableError) {
-      console.log('Error checking admin_users table:', tableError);
-      
-      // Table might not exist, let's try to create it
-      const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS admin_users (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          email TEXT UNIQUE NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          last_sign_in TIMESTAMP WITH TIME ZONE
-        );
-      `;
-      
-      // Need to use raw SQL query
-      try {
-        console.log('Attempting to create admin_users table...');
-        await supabase.rpc('execute_sql', { query: createTableQuery });
-        console.log('admin_users table created successfully');
-      } catch (createError) {
-        console.error('Error creating admin_users table:', createError);
-        return res.status(500).json({
-          error: 'Failed to create admin_users table',
-          details: createError.message
-        });
-      }
-    }
-    
-    // Insert the admin user
-    const { data: insertData, error: insertError } = await supabase
-      .from('admin_users')
-      .upsert([{ email }])
-      .select();
-    
-    if (insertError) {
-      console.error('Error inserting admin user:', insertError);
-      return res.status(500).json({
-        error: 'Failed to insert admin user',
-        details: insertError.message
-      });
-    }
-    
-    // Show all admin users
-    const { data: allAdmins } = await supabase
-      .from('admin_users')
-      .select('*');
-    
-    return res.json({
-      success: true,
-      message: `Admin user ${email} registered successfully`,
-      user: insertData[0],
-      all_admins: allAdmins
-    });
-  } catch (error) {
-    console.error('Admin registration error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      details: error.message
-    });
-  }
 });
 
 // Auth0 login route
@@ -337,5 +248,4 @@ app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
   console.log(`API endpoints:`);
   console.log(`  - http://localhost:${port}/api/healthcheck`);
-  console.log(`  - http://localhost:${port}/api/auth/debug`);
 });
