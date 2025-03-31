@@ -329,19 +329,49 @@ const requireAdminAuth = async (req, res, next) => {
 // Admin API for creating pickups
 app.post('/api/admin/area_pickup', requireAdminAuth, async (req, res) => {
   try {
+    // Extract the required fields for area_pickup
+    const { area_id, start_date } = req.body;
+    
+    // Validate required fields
+    if (!area_id || !start_date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: area_id and start_date are required' 
+      });
+    }
+    
+    // Only include fields that are in the table (exclude id to let it auto-increment)
+    const insertData = {
+      area_id: parseInt(area_id, 10), // Ensure area_id is an integer
+      start_date
+    };
+    
+    // Log the data being inserted for debugging
+    console.log('Inserting pickup with data:', insertData);
+    
+    // Insert the record using the admin client which bypasses RLS
     const { data, error } = await adminSupabase
       .from('area_pickup')
-      .insert(req.body)
+      .insert(insertData)
       .select();
       
     if (error) {
+      console.error('Supabase error inserting pickup:', error);
       return res.status(400).json({ success: false, error: error.message });
     }
     
-    res.json({ success: true, data });
+    if (!data || data.length === 0) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'No data returned after insert' 
+      });
+    }
+    
+    console.log('Successfully created pickup:', data[0]);
+    res.status(201).json({ success: true, data: data[0] });
   } catch (err) {
-    console.error('Admin API error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Admin API error creating pickup:', err);
+    res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 
@@ -388,23 +418,50 @@ app.get('/api/admin/area_pickup', requireAdminAuth, async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
+// Admin API for updating pickups
 app.put('/api/admin/area_pickup/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Parse the ID as an integer to ensure proper type matching
+    const pickupId = parseInt(id, 10);
+    if (isNaN(pickupId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid pickup ID' 
+      });
+    }
+    
+    // Make sure we only update valid fields
+    const updateData = {};
+    if (req.body.start_date) updateData.start_date = req.body.start_date;
+    if (req.body.area_id) updateData.area_id = parseInt(req.body.area_id, 10);
+    
+    console.log(`Updating pickup ${pickupId} with data:`, updateData);
+    
     const { data, error } = await adminSupabase
       .from('area_pickup')
-      .update(req.body)
-      .eq('id', id)
+      .update(updateData)
+      .eq('id', pickupId)
       .select();
       
     if (error) {
+      console.error('Error updating pickup:', error);
       return res.status(400).json({ success: false, error: error.message });
     }
     
-    res.json({ success: true, data });
+    if (!data || data.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Pickup not found or no changes applied' 
+      });
+    }
+    
+    console.log('Pickup successfully updated:', data[0]);
+    res.json({ success: true, data: data[0] });
   } catch (err) {
-    console.error('Admin API error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Admin API error updating pickup:', err);
+    res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 
@@ -412,19 +469,33 @@ app.put('/api/admin/area_pickup/:id', requireAdminAuth, async (req, res) => {
 app.delete('/api/admin/area_pickup/:id', requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Parse the ID as an integer to ensure proper type matching
+    const pickupId = parseInt(id, 10);
+    if (isNaN(pickupId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid pickup ID' 
+      });
+    }
+    
+    console.log(`Deleting pickup with ID ${pickupId}`);
+    
     const { error } = await adminSupabase
       .from('area_pickup')
       .delete()
-      .eq('id', id);
+      .eq('id', pickupId);
       
     if (error) {
+      console.error('Error deleting pickup:', error);
       return res.status(400).json({ success: false, error: error.message });
     }
     
+    console.log(`Pickup ${pickupId} deleted successfully`);
     res.json({ success: true, message: 'Pickup deleted successfully' });
   } catch (err) {
-    console.error('Admin API error:', err);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Admin API error deleting pickup:', err);
+    res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 

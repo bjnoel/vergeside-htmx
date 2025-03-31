@@ -401,7 +401,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ 
-                            area_id: areaId,
+                            area_id: parseInt(areaId), // Ensure area_id is sent as an integer
                             start_date: startDate
                         })
                     });
@@ -409,6 +409,7 @@
                     const result = await response.json();
                     
                     if (!response.ok) {
+                        console.error('API error response:', result);
                         throw new Error(result.error || 'Error adding pickup');
                     }
                     
