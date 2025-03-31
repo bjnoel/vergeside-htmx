@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Pickups - Vergeside Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/admin/css/admin.css">
 </head>
 <body>
@@ -42,12 +43,19 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Add New Pickup</h5>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
-                    Hide Form
+                    Show Form
                 </button>
             </div>
-            <div class="card-body" id="pickup-form-container">
+            <div class="card-body" id="pickup-form-container" style="display: none;">
                 <form id="pickup-form">
                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="council-filter" class="form-label">Council*</label>
+                            <select class="form-select" id="council-filter" required>
+                                <option value="">Select Council</option>
+                                <!-- Councils will be loaded here -->
+                            </select>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <label for="area-id" class="form-label">Area*</label>
                             <select class="form-select" id="area-id" required>
@@ -55,27 +63,10 @@
                                 <!-- Areas will be loaded here -->
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="council-filter" class="form-label">Filter by Council</label>
-                            <select class="form-select" id="council-filter">
-                                <option value="">All Councils</option>
-                                <!-- Councils will be loaded here -->
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="start-date" class="form-label">Start Date*</label>
-                            <input type="date" class="form-control" id="start-date" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="end-date" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="end-date">
-                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="pickup-notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="pickup-notes" rows="3" placeholder="Enter any notes or additional information about this pickup..."></textarea>
+                        <label for="start-date" class="form-label">Pickup Date*</label>
+                        <input type="date" class="form-control" id="start-date" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Pickup</button>
                 </form>
@@ -108,10 +99,9 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Area</th>
                                 <th>Council</th>
-                                <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>Area</th>
+                                <th>Pickup Date</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -139,23 +129,22 @@
                     <form id="edit-pickup-form">
                         <input type="hidden" id="edit-id">
                         <div class="mb-3">
-                            <label for="edit-area-id" class="form-label">Area*</label>
-                            <select class="form-select" id="edit-area-id" required>
+                            <label for="edit-council-id" class="form-label">Council</label>
+                            <select class="form-select" id="edit-council-id" disabled>
+                                <option value="">Select Council</option>
+                                <!-- Councils will be loaded here -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-area-id" class="form-label">Area</label>
+                            <select class="form-select" id="edit-area-id" disabled>
                                 <option value="">Select Area</option>
                                 <!-- Areas will be loaded here -->
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-start-date" class="form-label">Start Date*</label>
+                            <label for="edit-start-date" class="form-label">Pickup Date*</label>
                             <input type="date" class="form-control" id="edit-start-date" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-end-date" class="form-label">End Date</label>
-                            <input type="date" class="form-control" id="edit-end-date">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-notes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="edit-notes" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
@@ -172,11 +161,16 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
+                    <h5 class="modal-title">Confirm Delete Pickup</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this pickup? This action cannot be undone.</p>
+                    <div class="alert alert-danger">
+                        <h5><i class="bi bi-exclamation-triangle-fill"></i> Warning!</h5>
+                        <p>You are about to permanently delete this pickup. This action <strong>cannot be undone</strong>.</p>
+                        <p>If you delete this pickup, it will be removed from the schedule and residents will no longer see it on the website.</p>
+                    </div>
+                    <p>Are you absolutely sure you want to delete this pickup?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -211,7 +205,8 @@
             const pickupFormContainer = document.getElementById('pickup-form-container');
             const areaSelect = document.getElementById('area-id');
             const editAreaSelect = document.getElementById('edit-area-id');
-            const councilFilter = document.getElementById('council-filter');
+            const councilSelect = document.getElementById('council-filter');
+            const editCouncilSelect = document.getElementById('edit-council-id');
             const dateFilter = document.getElementById('date-filter');
             const filterBtn = document.getElementById('filter-btn');
             
@@ -240,9 +235,19 @@
             // Hide loading screen
             loadingElement.classList.add('d-none');
             
-            // Load councils and areas
+            // Load councils
             await loadCouncils();
-            await loadAreas();
+            
+            // Council selection event handler
+            councilSelect.addEventListener('change', function() {
+                const councilId = this.value;
+                if (councilId) {
+                    loadAreasForCouncil(councilId);
+                } else {
+                    // Clear area dropdown if no council selected
+                    areaSelect.innerHTML = '<option value="">Select Area</option>';
+                }
+            });
             
             // Load pickups
             loadPickups();
@@ -263,14 +268,14 @@
                     
                     councils = data;
                     
-                    // Populate council filter dropdown
-                    councilFilter.innerHTML = '<option value="">All Councils</option>';
+                    // Populate council dropdown
+                    councilSelect.innerHTML = '<option value="">Select Council</option>';
                     
                     data.forEach(council => {
                         const option = document.createElement('option');
                         option.value = council.id;
                         option.textContent = council.name;
-                        councilFilter.appendChild(option);
+                        councilSelect.appendChild(option);
                     });
                 } catch (error) {
                     console.error('Error loading councils:', error);
@@ -278,51 +283,40 @@
                 }
             }
             
-            // Load areas from database
-            async function loadAreas(councilId = '') {
+            // Load areas for a specific council
+            async function loadAreasForCouncil(councilId) {
                 try {
-                    let query = adminAuth.supabase
+                    const { data, error } = await adminAuth.supabase
                         .from('area')
                         .select(`
-                            *,
+                            id,
+                            name,
+                            council_id,
                             council:council_id (
                                 id,
                                 name
                             )
                         `)
+                        .eq('council_id', councilId)
                         .eq('active', true)
                         .order('name');
-                    
-                    if (councilId) {
-                        query = query.eq('council_id', councilId);
-                    }
-                    
-                    const { data, error } = await query;
                     
                     if (error) {
                         showToast('Error loading areas: ' + error.message, 'danger');
                         return;
                     }
                     
-                    areas = data;
-                    
-                    // Populate area dropdowns
+                    // Populate area dropdown
                     areaSelect.innerHTML = '<option value="">Select Area</option>';
-                    editAreaSelect.innerHTML = '<option value="">Select Area</option>';
                     
                     data.forEach(area => {
                         const option = document.createElement('option');
                         option.value = area.id;
-                        option.textContent = `${area.name} (${area.council ? area.council.name : 'Unknown'})`;
+                        option.textContent = area.name;
                         areaSelect.appendChild(option);
-                        
-                        const editOption = document.createElement('option');
-                        editOption.value = area.id;
-                        editOption.textContent = `${area.name} (${area.council ? area.council.name : 'Unknown'})`;
-                        editAreaSelect.appendChild(editOption);
                     });
                 } catch (error) {
-                    console.error('Error loading areas:', error);
+                    console.error('Error loading areas for council:', error);
                     showToast('Error loading areas', 'danger');
                 }
             }
@@ -378,16 +372,13 @@
                         data.forEach(pickup => {
                             const row = document.createElement('tr');
                             
-                            // Format dates for display
                             const startDate = new Date(pickup.start_date).toLocaleDateString();
-                            const endDate = pickup.end_date ? new Date(pickup.end_date).toLocaleDateString() : 'N/A';
                             
                             row.innerHTML = `
                                 <td>${pickup.id}</td>
-                                <td>${pickup.area ? pickup.area.name : 'Unknown'}</td>
                                 <td>${pickup.area && pickup.area.council ? pickup.area.council.name : 'Unknown'}</td>
+                                <td>${pickup.area ? pickup.area.name : 'Unknown'}</td>
                                 <td>${startDate}</td>
-                                <td>${endDate}</td>
                                 <td>
                                     <button class="btn btn-sm btn-primary edit-btn" data-id="${pickup.id}">
                                         Edit
@@ -429,8 +420,6 @@
                 
                 const areaId = document.getElementById('area-id').value;
                 const startDate = document.getElementById('start-date').value;
-                const endDate = document.getElementById('end-date').value;
-                const notes = document.getElementById('pickup-notes').value.trim();
                 
                 if (!areaId) {
                     showToast('Please select an area', 'warning');
@@ -438,7 +427,7 @@
                 }
                 
                 if (!startDate) {
-                    showToast('Start date is required', 'warning');
+                    showToast('Pickup date is required', 'warning');
                     return;
                 }
                 
@@ -450,20 +439,21 @@
                         .insert([
                             { 
                                 area_id: areaId,
-                                start_date: startDate,
-                                end_date: endDate || null,
-                                notes: notes || null
+                                start_date: startDate
                             }
                         ])
                         .select();
                     
                     if (error) {
                         showToast('Error adding pickup: ' + error.message, 'danger');
+                        hideLoading();
                         return;
                     }
                     
                     showToast('Pickup added successfully', 'success');
                     pickupForm.reset();
+                    // Reset area dropdown as well
+                    areaSelect.innerHTML = '<option value="">Select Area</option>';
                     loadPickups();
                 } catch (error) {
                     console.error('Error adding pickup:', error);
@@ -480,7 +470,18 @@
                 try {
                     const { data, error } = await adminAuth.supabase
                         .from('area_pickup')
-                        .select('*')
+                        .select(`
+                            *,
+                            area:area_id (
+                                id, 
+                                name,
+                                council_id,
+                                council:council_id (
+                                    id,
+                                    name
+                                )
+                            )
+                        `)
                         .eq('id', id)
                         .single();
                     
@@ -490,11 +491,33 @@
                         return;
                     }
                     
+                    // Fill in the edit form with data
                     document.getElementById('edit-id').value = data.id;
-                    document.getElementById('edit-area-id').value = data.area_id || '';
+                    
+                    // First set council dropdown
+                    if (data.area && data.area.council) {
+                        // Add council to dropdown if not already there
+                        editCouncilSelect.innerHTML = '';
+                        const option = document.createElement('option');
+                        option.value = data.area.council.id;
+                        option.textContent = data.area.council.name;
+                        editCouncilSelect.appendChild(option);
+                        editCouncilSelect.value = data.area.council.id;
+                    }
+                    
+                    // Then set area dropdown
+                    if (data.area) {
+                        // Add area to dropdown if not already there
+                        editAreaSelect.innerHTML = '';
+                        const option = document.createElement('option');
+                        option.value = data.area.id;
+                        option.textContent = data.area.name;
+                        editAreaSelect.appendChild(option);
+                        editAreaSelect.value = data.area.id;
+                    }
+                    
+                    // Set pickup date
                     document.getElementById('edit-start-date').value = data.start_date;
-                    document.getElementById('edit-end-date').value = data.end_date || '';
-                    document.getElementById('edit-notes').value = data.notes || '';
                     
                     editPickupModal.show();
                 } catch (error) {
@@ -508,18 +531,10 @@
             // Save pickup edits
             async function savePickupChanges() {
                 const id = document.getElementById('edit-id').value;
-                const areaId = document.getElementById('edit-area-id').value;
                 const startDate = document.getElementById('edit-start-date').value;
-                const endDate = document.getElementById('edit-end-date').value;
-                const notes = document.getElementById('edit-notes').value.trim();
-                
-                if (!areaId) {
-                    showToast('Please select an area', 'warning');
-                    return;
-                }
                 
                 if (!startDate) {
-                    showToast('Start date is required', 'warning');
+                    showToast('Pickup date is required', 'warning');
                     return;
                 }
                 
@@ -530,15 +545,13 @@
                     const { error } = await adminAuth.supabase
                         .from('area_pickup')
                         .update({ 
-                            area_id: areaId,
-                            start_date: startDate,
-                            end_date: endDate || null,
-                            notes: notes || null
+                            start_date: startDate
                         })
                         .eq('id', id);
                     
                     if (error) {
                         showToast('Error updating pickup: ' + error.message, 'danger');
+                        hideLoading();
                         return;
                     }
                     
@@ -573,6 +586,7 @@
                     
                     if (error) {
                         showToast('Error deleting pickup: ' + error.message, 'danger');
+                        hideLoading();
                         return;
                     }
                     
@@ -596,12 +610,6 @@
                     pickupFormContainer.style.display = 'none';
                     toggleFormBtn.textContent = 'Show Form';
                 }
-            }
-            
-            // Filter areas by council
-            async function filterAreasByCouncil() {
-                const selectedCouncilId = councilFilter.value;
-                await loadAreas(selectedCouncilId);
             }
             
             // Filter pickups by date
@@ -662,7 +670,6 @@
             savePickupBtn.addEventListener('click', savePickupChanges);
             confirmDeleteBtn.addEventListener('click', deletePickup);
             toggleFormBtn.addEventListener('click', toggleFormVisibility);
-            councilFilter.addEventListener('change', filterAreasByCouncil);
             filterBtn.addEventListener('click', filterPickupsByDate);
         });
     </script>
