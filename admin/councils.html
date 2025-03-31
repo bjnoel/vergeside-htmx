@@ -42,20 +42,30 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Add New Council</h5>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
-                    Hide Form
+                    Show Form
                 </button>
             </div>
-            <div class="card-body" id="council-form-container">
+            <div class="card-body" id="council-form-container" style="display: none;">
                 <form id="council-form">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="council-name" class="form-label">Council Name*</label>
-                            <input type="text" class="form-control" id="council-name" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="council-website" class="form-label">Website URL</label>
-                            <input type="url" class="form-control" id="council-website" placeholder="https://example.com">
-                        </div>
+                    <div class="col-md-6 mb-3">
+                    <label for="council-name" class="form-label">Council Name*</label>
+                    <input type="text" class="form-control" id="council-name" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                    <label for="council-website" class="form-label">Council Website URL</label>
+                    <input type="url" class="form-control" id="council-website" placeholder="https://example.com">
+                    </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="council-bulk-waste-url" class="form-label">Bulk Waste Information URL</label>
+                        <input type="url" class="form-control" id="council-bulk-waste-url" placeholder="https://example.com/bulk-waste">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="council-has-pickups" checked>
+                        <label class="form-check-label" for="council-has-pickups">
+                            Has Bulk Waste Pickups
+                        </label>
                     </div>
                     <div class="mb-3">
                         <label for="council-info" class="form-label">Additional Information</label>
@@ -95,6 +105,8 @@
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Website</th>
+                                <th>Bulk Waste URL</th>
+                                <th>Has Pickups</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -127,8 +139,18 @@
                             <input type="text" class="form-control" id="edit-name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-website" class="form-label">Website URL</label>
+                            <label for="edit-website" class="form-label">Council Website URL</label>
                             <input type="url" class="form-control" id="edit-website">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-bulk-waste-url" class="form-label">Bulk Waste Information URL</label>
+                            <input type="url" class="form-control" id="edit-bulk-waste-url">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="edit-has-pickups">
+                            <label class="form-check-label" for="edit-has-pickups">
+                                Has Bulk Waste Pickups
+                            </label>
                         </div>
                         <div class="mb-3">
                             <label for="edit-info" class="form-label">Additional Information</label>
@@ -257,9 +279,19 @@
                             <td>${council.id}</td>
                             <td>${council.name}</td>
                             <td>
-                                ${council.website ? 
-                                    `<a href="${council.website}" target="_blank">${council.website}</a>` : 
+                                ${council.council_url ? 
+                                    `<a href="${council.council_url}" target="_blank">${council.council_url}</a>` : 
                                     '<span class="text-muted">None</span>'}
+                            </td>
+                            <td>
+                                ${council.bulk_waste_url ? 
+                                    `<a href="${council.bulk_waste_url}" target="_blank">${council.bulk_waste_url}</a>` : 
+                                    '<span class="text-muted">None</span>'}
+                            </td>
+                            <td>
+                                ${council.has_pickups ? 
+                                    '<span class="badge bg-success">Yes</span>' : 
+                                    '<span class="badge bg-secondary">No</span>'}
                             </td>
                             <td>
                                 ${council.active ? 
@@ -269,9 +301,6 @@
                             <td>
                                 <button class="btn btn-sm btn-primary edit-btn" data-id="${council.id}">
                                     Edit
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="${council.id}">
-                                    Delete
                                 </button>
                             </td>
                         `;
@@ -285,13 +314,6 @@
                             openEditModal(id);
                         });
                     });
-                    
-                    document.querySelectorAll('.delete-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            const id = e.target.getAttribute('data-id');
-                            openDeleteConfirmation(id);
-                        });
-                    });
                 }
                 
                 hideLoading();
@@ -303,7 +325,9 @@
                 
                 const name = document.getElementById('council-name').value.trim();
                 const website = document.getElementById('council-website').value.trim();
+                const bulkWasteUrl = document.getElementById('council-bulk-waste-url').value.trim();
                 const info = document.getElementById('council-info').value.trim();
+                const hasPickups = document.getElementById('council-has-pickups').checked;
                 const active = document.getElementById('council-active').checked;
                 
                 if (!name) {
@@ -318,8 +342,10 @@
                     .insert([
                         { 
                             name, 
-                            website: website || null, 
+                            council_url: website || null,
+                            bulk_waste_url: bulkWasteUrl || null,
                             info: info || null,
+                            has_pickups: hasPickups,
                             active
                         }
                     ])
@@ -354,8 +380,10 @@
                 
                 document.getElementById('edit-id').value = data.id;
                 document.getElementById('edit-name').value = data.name;
-                document.getElementById('edit-website').value = data.website || '';
+                document.getElementById('edit-website').value = data.council_url || '';
+                document.getElementById('edit-bulk-waste-url').value = data.bulk_waste_url || '';
                 document.getElementById('edit-info').value = data.info || '';
+                document.getElementById('edit-has-pickups').checked = data.has_pickups || false;
                 document.getElementById('edit-active').checked = data.active;
                 
                 hideLoading();
@@ -367,7 +395,9 @@
                 const id = document.getElementById('edit-id').value;
                 const name = document.getElementById('edit-name').value.trim();
                 const website = document.getElementById('edit-website').value.trim();
+                const bulkWasteUrl = document.getElementById('edit-bulk-waste-url').value.trim();
                 const info = document.getElementById('edit-info').value.trim();
+                const hasPickups = document.getElementById('edit-has-pickups').checked;
                 const active = document.getElementById('edit-active').checked;
                 
                 if (!name) {
@@ -382,8 +412,10 @@
                     .from('council')
                     .update({ 
                         name, 
-                        website: website || null, 
+                        council_url: website || null,
+                        bulk_waste_url: bulkWasteUrl || null,
                         info: info || null,
+                        has_pickups: hasPickups,
                         active
                     })
                     .eq('id', id);
@@ -494,7 +526,6 @@
             
             councilForm.addEventListener('submit', addCouncil);
             saveCouncilBtn.addEventListener('click', saveCouncilChanges);
-            confirmDeleteBtn.addEventListener('click', deleteCouncil);
             toggleFormBtn.addEventListener('click', toggleFormVisibility);
             searchBtn.addEventListener('click', searchCouncils);
             searchInput.addEventListener('keyup', (e) => {
