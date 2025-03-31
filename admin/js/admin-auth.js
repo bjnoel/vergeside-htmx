@@ -15,20 +15,46 @@ class AdminAuth {
 
     async init() {
         try {
-            // Check if we have a session
-            const { data: { session } } = await this.supabase.auth.getSession();
-            
-            if (session) {
-                this.user = session.user;
-                // Verify admin access
-                await this.checkAdminAccess();
+            // Check if we have a cookie-based authentication
+            const adminAuthCookie = document.cookie
+                .split('; ')
+                .find(row => row.startsWith('admin_auth='));
+                
+            if (adminAuthCookie) {
+                try {
+                    // Parse the cookie value
+                    const userData = JSON.parse(decodeURIComponent(adminAuthCookie.split('=')[1]));
+                    console.log('User data from cookie:', userData);
+                    
+                    if (userData && userData.email && userData.authenticated) {
+                        // Set user information from cookie
+                        this.user = {
+                            email: userData.email,
+                            name: userData.name || '',
+                            picture: userData.picture || ''
+                        };
+                        this.isAuthenticated = true;
+                        console.log('Authenticated from cookie for user:', this.user.email);
+                    } else {
+                        this.isAuthenticated = false;
+                        console.log('Invalid cookie data');
+                        this.redirectToLogin();
+                    }
+                } catch (e) {
+                    console.error('Error parsing admin_auth cookie:', e);
+                    this.isAuthenticated = false;
+                    this.redirectToLogin();
+                }
             } else {
+                // No authentication cookie found
+                console.log('No admin_auth cookie found');
                 this.isAuthenticated = false;
                 this.redirectToLogin();
             }
         } catch (error) {
             console.error('Authentication initialization error:', error);
             this.isAuthenticated = false;
+            this.redirectToLogin();
         } finally {
             this.initialized = true;
             // Dispatch event once auth is initialized
@@ -37,34 +63,23 @@ class AdminAuth {
     }
 
     async checkAdminAccess() {
-        if (!this.user) {
+        if (!this.user || !this.user.email) {
             this.isAuthenticated = false;
             return false;
         }
 
         try {
-            // Query the admin_users table to check if this user's email is whitelisted
-            const { data, error } = await this.supabase
-                .from('admin_users')
-                .select('*')
-                .eq('email', this.user.email)
-                .single();
+            // Check with the server if this user is authenticated
+            const response = await fetch('/api/auth/check');
+            const data = await response.json();
             
-            if (error || !data) {
-                console.error('Admin access check failed:', error);
-                this.isAuthenticated = false;
-                await this.signOut();
-                return false;
+            if (data.authenticated && data.email) {
+                this.isAuthenticated = true;
+                return true;
             }
-
-            // Update last sign-in timestamp
-            await this.supabase
-                .from('admin_users')
-                .update({ last_sign_in: new Date().toISOString() })
-                .eq('email', this.user.email);
             
-            this.isAuthenticated = true;
-            return true;
+            this.isAuthenticated = false;
+            return false;
         } catch (error) {
             console.error('Error checking admin access:', error);
             this.isAuthenticated = false;
@@ -74,10 +89,8 @@ class AdminAuth {
 
     async signOut() {
         try {
-            await this.supabase.auth.signOut();
-            this.isAuthenticated = false;
-            this.user = null;
-            this.redirectToLogin();
+            // Redirect to the server logout endpoint
+            window.location.href = '/api/auth/logout';
         } catch (error) {
             console.error('Error signing out:', error);
         }
