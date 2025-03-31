@@ -61,7 +61,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
   // Create a new council
   router.post('/', requireAdminAuth, async (req, res) => {
     try {
-      const { name, council_url, bulk_waste_url, info, has_pickups, active } = req.body;
+      const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = req.body;
       
       // Validate required fields
       if (!name) {
@@ -71,13 +71,20 @@ module.exports = function(adminSupabase, requireAdminAuth) {
         });
       }
       
+      if (!council_url) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required field: council_url' 
+        });
+      }
+      
+      // Prepare the insert data with only fields that exist in the schema
       const insertData = {
         name,
-        council_url: council_url || null,
+        council_url,
         bulk_waste_url: bulk_waste_url || null,
-        info: info || null,
         has_pickups: has_pickups !== undefined ? has_pickups : true,
-        active: active !== undefined ? active : true
+        date_last_checked: date_last_checked || null
       };
       
       console.log('Inserting council with data:', insertData);
@@ -121,7 +128,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
         });
       }
       
-      const { name, council_url, bulk_waste_url, info, has_pickups, active } = req.body;
+      const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = req.body;
       
       // Validate required fields
       if (!name) {
@@ -131,14 +138,25 @@ module.exports = function(adminSupabase, requireAdminAuth) {
         });
       }
       
+      if (!council_url) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required field: council_url' 
+        });
+      }
+      
+      // Prepare the update data with only fields that exist in the schema
       const updateData = {
         name,
-        council_url: council_url || null,
+        council_url,
         bulk_waste_url: bulk_waste_url || null,
-        info: info || null,
-        has_pickups: has_pickups !== undefined ? has_pickups : true,
-        active: active !== undefined ? active : true
+        has_pickups: has_pickups !== undefined ? has_pickups : true
       };
+      
+      // Only include date_last_checked if it's provided
+      if (date_last_checked !== undefined) {
+        updateData.date_last_checked = date_last_checked;
+      }
       
       console.log(`Updating council ${councilId} with data:`, updateData);
       
@@ -168,7 +186,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
     }
   });
 
-  // Delete a council (or set inactive)
+  // Delete a council
   router.delete('/:id', requireAdminAuth, async (req, res) => {
     try {
       const { id } = req.params;
@@ -182,21 +200,20 @@ module.exports = function(adminSupabase, requireAdminAuth) {
         });
       }
       
-      // Instead of actually deleting, we'll set active to false (soft delete)
       const { error } = await adminSupabase
         .from('council')
-        .update({ active: false })
+        .delete()
         .eq('id', councilId);
         
       if (error) {
-        console.error('Error deactivating council:', error);
+        console.error('Error deleting council:', error);
         return res.status(400).json({ success: false, error: error.message });
       }
       
-      console.log(`Council ${councilId} deactivated successfully`);
-      res.json({ success: true, message: 'Council deactivated successfully' });
+      console.log(`Council ${councilId} deleted successfully`);
+      res.json({ success: true, message: 'Council deleted successfully' });
     } catch (err) {
-      console.error('Admin API error deactivating council:', err);
+      console.error('Admin API error deleting council:', err);
       res.status(500).json({ success: false, error: err.message || 'Server error' });
     }
   });

@@ -38,6 +38,17 @@
     </div>
 
     <div class="container">
+        <!-- Missing Pickups Info -->        
+        <div class="card mb-4 d-none" id="missing-pickups-card">
+            <div class="card-header bg-warning-subtle">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Councils Missing Future Pickups</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">The following councils have bulk waste pickups enabled but don't have any future dated pickups scheduled:</p>
+                <div id="councils-missing-pickups" class="mt-2">Loading council data...</div>
+            </div>
+        </div>
+        
         <!-- Pickup Form -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -235,8 +246,9 @@
             // Hide loading screen
             loadingElement.classList.add('d-none');
             
-            // Load councils
+            // Load councils and check for missing pickups
             await loadCouncils();
+            await checkCouncilsWithoutFuturePickups();
             
             // Council selection event handler
             councilSelect.addEventListener('change', function() {
@@ -301,6 +313,55 @@
                 } catch (error) {
                     console.error('Error loading areas for council:', error);
                     showToast('Error loading areas: ' + error.message, 'danger');
+                }
+            }
+            
+            // Check for councils with has_pickups=true but no future pickups
+            async function checkCouncilsWithoutFuturePickups() {
+                try {
+                    const response = await fetch('/api/admin/area_pickup?filter=future');
+                    if (!response.ok) {
+                        throw new Error('Error fetching future pickups');
+                    }
+                    
+                    const pickupsResult = await response.json();
+                    const futurePickups = pickupsResult.data || [];
+                    
+                    // Get councils with pickups enabled
+                    const councilsWithPickupsEnabled = councils.filter(c => c.has_pickups);
+                    
+                    // Find councils that have pickups enabled but no future pickups
+                    const councilsMissingPickups = councilsWithPickupsEnabled.filter(council => {
+                        return !futurePickups.some(pickup => 
+                            pickup.area && 
+                            pickup.area.council && 
+                            pickup.area.council.id === council.id
+                        );
+                    });
+                    
+                    const missingPickupsCard = document.getElementById('missing-pickups-card');
+                    const councilsMissingPickupsEl = document.getElementById('councils-missing-pickups');
+                    
+                    if (councilsMissingPickups.length > 0) {
+                        // Show the card
+                        missingPickupsCard.classList.remove('d-none');
+                        
+                        // Create the list of missing councils
+                        councilsMissingPickupsEl.innerHTML = councilsMissingPickups.map(council => {
+                            let councilLink = '';
+                            if (council.bulk_waste_url) {
+                                councilLink = `<a href="${council.bulk_waste_url}" target="_blank" class="council-badge">${council.name}</a>`;
+                            } else {
+                                councilLink = `<span class="council-badge">${council.name}</span>`;
+                            }
+                            return councilLink;
+                        }).join(' ');
+                    } else {
+                        // Hide the card
+                        missingPickupsCard.classList.add('d-none');
+                    }
+                } catch (error) {
+                    console.error('Error checking councils without future pickups:', error);
                 }
             }
             
