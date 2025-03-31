@@ -258,49 +258,33 @@
             // Load dashboard data
             async function loadDashboardData() {
                 try {
-                    // Get counts
-                    const [councilData, areaData, pickupData] = await Promise.all([
-                        adminAuth.supabase.from('council').select('count').single(),
-                        adminAuth.supabase.from('area').select('count').single(),
-                        adminAuth.supabase.from('area_pickup').select('count').single()
+                    // Get counts using server API endpoints instead of direct Supabase calls
+                    const [councilResponse, areaResponse, pickupResponse] = await Promise.all([
+                        fetch('/api/admin/council'),
+                        fetch('/api/admin/area'),
+                        fetch('/api/admin/area_pickup')
                     ]);
                     
+                    const councilData = await councilResponse.json();
+                    const areaData = await areaResponse.json();
+                    const pickupData = await pickupResponse.json();
+                    
                     // Update counts on the dashboard
-                    councilCount.textContent = councilData.data?.count || 0;
-                    areaCount.textContent = areaData.data?.count || 0;
-                    pickupCount.textContent = pickupData.data?.count || 0;
+                    councilCount.textContent = councilData.data?.length || 0;
+                    areaCount.textContent = areaData.data?.length || 0;
+                    pickupCount.textContent = pickupData.data?.length || 0;
                     
-                    // Get upcoming pickups
+                    // Get upcoming pickups - use API endpoint
                     const today = new Date().toISOString().split('T')[0];
-                    const oneMonthLater = new Date();
-                    oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-                    const oneMonthFromNow = oneMonthLater.toISOString().split('T')[0];
+                    const response = await fetch(`/api/admin/area_pickup?filter=future`);
+                    const result = await response.json();
                     
-                    const { data: pickups, error } = await adminAuth.supabase
-                        .from('area_pickup')
-                        .select(`
-                            id,
-                            start_date,
-                            end_date,
-                            area (
-                                id,
-                                name,
-                                council (
-                                    id,
-                                    name
-                                )
-                            )
-                        `)
-                        .gte('start_date', today)
-                        .lte('start_date', oneMonthFromNow)
-                        .order('start_date', { ascending: true })
-                        .limit(5);
-                    
-                    if (error) {
-                        console.error('Error fetching pickups:', error);
-                        upcomingPickups.innerHTML = '<p class="text-center text-danger">Error loading pickups</p>';
-                        return;
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Error loading pickups');
                     }
+                    
+                    // Get just the first 5 pickups
+                    const pickups = result.data?.slice(0, 5) || [];
                     
                     if (pickups.length === 0) {
                         upcomingPickups.innerHTML = '<p class="text-center text-muted">No upcoming pickups in the next month</p>';
@@ -309,16 +293,22 @@
                         
                         pickups.forEach(pickup => {
                             const startDate = new Date(pickup.start_date).toLocaleDateString();
+                            // Handle end_date if it exists
                             const endDate = pickup.end_date ? new Date(pickup.end_date).toLocaleDateString() : 'N/A';
+                            
+                            // Make sure we have valid area data
+                            const areaName = pickup.area ? pickup.area.name : 'Unknown Area';
+                            const councilName = pickup.area && pickup.area.council ? 
+                                pickup.area.council.name : 'Unknown Council';
                             
                             html += `
                                 <li class="list-group-item">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <strong>${pickup.area.name}</strong>
-                                            <span class="text-muted"> (${pickup.area.council.name})</span>
+                                            <strong>${areaName}</strong>
+                                            <span class="text-muted"> (${councilName})</span>
                                         </div>
-                                        <span class="badge bg-primary">${startDate} - ${endDate}</span>
+                                        <span class="badge bg-primary">${startDate}</span>
                                     </div>
                                 </li>
                             `;

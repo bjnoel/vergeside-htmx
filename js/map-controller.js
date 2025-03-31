@@ -1,5 +1,47 @@
 // Map controller for Google Maps integration
 
+// Default configuration values if CONFIG is not defined
+const MAP_DEFAULTS = {
+    MAP_DEFAULT_CENTER: { lat: -31.9505, lng: 115.8605 }, // Perth, WA as default
+    MAP_DEFAULT_ZOOM: 10,
+    TIMEZONE: '+08:00', // Perth timezone (GMT+8)
+    DEFAULT_DATE_FORMAT: 'YYYY-MM-DD',
+    DEFAULT_DATE_RANGE: {
+        START_OFFSET: 0,
+        END_OFFSET: 28
+    },
+    COLORS: {
+        // Colors representing 0-7 days, 8-14 days, etc.
+        WEEK_0: '#ff4000', // Red
+        WEEK_1: '#ffbf00', // Orange
+        WEEK_2: '#ffff00', // Yellow
+        WEEK_3: '#bfff00', // Yellow-Green
+        WEEK_4: '#80ff00', // Light Green
+        WEEK_5: '#40ff00', // Green
+        WEEK_6: '#00ff00', // Green
+        WEEK_7: '#00ff40', // Green-Cyan
+        WEEK_8: '#00ff80', // Light Cyan
+        WEEK_9: '#00ffbf', // Cyan
+        WEEK_10: '#00ffff', // Cyan
+        WEEK_11: '#00bfff', // Light Blue
+        WEEK_12: '#0080ff', // Light Blue
+        WEEK_13: '#0040ff', // Blue
+        WEEK_14: '#0000ff', // Blue
+        DEFAULT: '#808080' // Gray for unknown or past dates
+    }
+};
+
+// Helper function to get configuration values with fallbacks
+function getMapConfig(key, fallback) {
+    if (window.CONFIG && typeof CONFIG[key] !== 'undefined') {
+        return CONFIG[key];
+    }
+    if (window.ENV && typeof ENV[key] !== 'undefined') {
+        return ENV[key];
+    }
+    return fallback;
+}
+
 class MapController {
     constructor() {
         this.map = null;
@@ -24,8 +66,8 @@ class MapController {
     // Initialize the Google Map
     initMap() {
         this.map = new google.maps.Map(document.getElementById('map'), {
-            center: CONFIG.MAP_DEFAULT_CENTER,
-            zoom: CONFIG.MAP_DEFAULT_ZOOM,
+            center: getMapConfig('MAP_DEFAULT_CENTER', MAP_DEFAULTS.MAP_DEFAULT_CENTER),
+            zoom: getMapConfig('MAP_DEFAULT_ZOOM', MAP_DEFAULTS.MAP_DEFAULT_ZOOM),
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             mapTypeControl: true,
             mapTypeControlOptions: {
@@ -96,10 +138,14 @@ class MapController {
             
             // Set default date range if not specified
             if (!this.startDate || !this.endDate) {
-                // Use Perth timezone specified in CONFIG
-                const today = moment().utcOffset(CONFIG.TIMEZONE).startOf('day');
-                this.startDate = today.format(CONFIG.DEFAULT_DATE_FORMAT);
-                this.endDate = today.clone().add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days').format(CONFIG.DEFAULT_DATE_FORMAT);
+                // Use Perth timezone with fallback
+                const timezone = getMapConfig('TIMEZONE', MAP_DEFAULTS.TIMEZONE);
+                const dateFormat = getMapConfig('DEFAULT_DATE_FORMAT', MAP_DEFAULTS.DEFAULT_DATE_FORMAT);
+                const endOffset = getMapConfig('DEFAULT_DATE_RANGE', MAP_DEFAULTS.DEFAULT_DATE_RANGE).END_OFFSET;
+                
+                const today = moment().utcOffset(timezone).startOf('day');
+                this.startDate = today.format(dateFormat);
+                this.endDate = today.clone().add(endOffset, 'days').format(dateFormat);
             }
             
             this.debug('Loading areas with date range:', { startDate: this.startDate, endDate: this.endDate, councilId });
@@ -170,23 +216,24 @@ class MapController {
                             
                             // Get the appropriate color based on pickup date
                             const pickupDate = nextPickup.start_date;
-                            // Use Perth timezone specified in CONFIG
-                            const today = moment().utcOffset(CONFIG.TIMEZONE).startOf('day');
-                            const pickup = moment(pickupDate).utcOffset(CONFIG.TIMEZONE).startOf('day');
+                            // Use Perth timezone with fallback
+                            const timezone = getMapConfig('TIMEZONE', MAP_DEFAULTS.TIMEZONE);
+                            const today = moment().utcOffset(timezone).startOf('day');
+                            const pickup = moment(pickupDate).utcOffset(timezone).startOf('day');
                             const daysUntilPickup = pickup.diff(today, 'days');
                             
                             // Determine which color to use based on days until pickup
-                            // Following the 7-day increment logic from the C# code
-                            let color = CONFIG.COLORS.DEFAULT;
+                            const colors = getMapConfig('COLORS', MAP_DEFAULTS.COLORS);
+                            let color = colors.DEFAULT;
                             
                             if (daysUntilPickup < 0) {
                                 // Past date
-                                color = CONFIG.COLORS.DEFAULT;
+                                color = colors.DEFAULT;
                             } else {
                                 // Calculate which week we're in (0-14)
                                 // For the first 7 days (0-6), use WEEK_0 (red)
                                 const weekIndex = Math.min(Math.floor(daysUntilPickup / 7), 14);
-                                color = CONFIG.COLORS[`WEEK_${weekIndex}`] || CONFIG.COLORS.DEFAULT;
+                                color = colors[`WEEK_${weekIndex}`] || colors.DEFAULT;
                             }
                             
                             // Create the polygon

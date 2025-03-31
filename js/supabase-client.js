@@ -2,8 +2,17 @@
 
 class SupabaseClient {
     constructor() {
-        // Make sure we're using the correct keys from CONFIG
-        this.supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        // Get configuration values, with fallbacks if CONFIG is not defined yet
+        const supabaseUrl = (window.CONFIG && CONFIG.SUPABASE_URL) || 
+                            (window.ENV && ENV.SUPABASE_URL) || 
+                            'https://wihegqwakwwvckxrivem.supabase.co';
+        
+        const supabaseAnonKey = (window.CONFIG && CONFIG.SUPABASE_ANON_KEY) || 
+                               (window.ENV && ENV.SUPABASE_ANON_KEY) || 
+                               'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpaGVncXdha3d3dmNreHJpdmVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2Mzg1NDksImV4cCI6MjA1NjIxNDU0OX0.aP2ThYybxtUE6JaVHs1sowZaDfAbxxPC_yBotY5qApM';
+        
+        // Create the Supabase client with the appropriate values
+        this.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
         this.schema = "";
     }
 

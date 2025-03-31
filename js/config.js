@@ -1,14 +1,30 @@
 // Configuration settings for the application
 
+// Helper function to get environment variables with fallbacks
+function getEnv(key, fallback) {
+    // First check window.ENV from server-injected values
+    if (window.ENV && typeof window.ENV[key] !== 'undefined' && window.ENV[key] !== '') {
+        return window.ENV[key];
+    }
+    
+    // Next check global variables (for backward compatibility)
+    if (typeof window[key] !== 'undefined' && window[key] !== '' && window[key] !== `$\{${key}\}`) {
+        return window[key];
+    }
+    
+    // Finally return fallback
+    return fallback;
+}
+
 const CONFIG = {
     // Timezone Configuration
     TIMEZONE: '+08:00', // Perth timezone (GMT+8)
     // Supabase Configuration
-    SUPABASE_URL: 'https://wihegqwakwwvckxrivem.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpaGVncXdha3d3dmNreHJpdmVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2Mzg1NDksImV4cCI6MjA1NjIxNDU0OX0.aP2ThYybxtUE6JaVHs1sowZaDfAbxxPC_yBotY5qApM',
-    
+    SUPABASE_URL: getEnv('SUPABASE_URL', 'https://wihegqwakwwvckxrivem.supabase.co'),
+    SUPABASE_ANON_KEY: getEnv('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpaGVncXdha3d3dmNreHJpdmVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2Mzg1NDksImV4cCI6MjA1NjIxNDU0OX0.aP2ThYybxtUE6JaVHs1sowZaDfAbxxPC_yBotY5qApM'),
+    SUPABASE_SERVICE_KEY: '', // Never expose service key in client-side code
     // Google Maps API Configuration - Read from environment variable if available
-    MAPS_API_KEY: (typeof MAPS_API_KEY !== 'undefined') ? MAPS_API_KEY : 'AIzaSyCzF7ukLxzRdcoEpBpr-YFV_4hroVUYXqE', // Fallback to hardcoded value in development
+    MAPS_API_KEY: getEnv('MAPS_API_KEY', 'AIzaSyCzF7ukLxzRdcoEpBpr-YFV_4hroVUYXqE'), // Fallback to hardcoded value in development
     
     // Date Format Configuration
     DEFAULT_DATE_FORMAT: 'YYYY-MM-DD',

@@ -1,10 +1,11 @@
 /**
- * Admin Authentication Module - Using Auth0 with Supabase
+ * Admin Authentication Module - Using Auth0 with server-side authentication
+ * No direct Supabase calls for admin operations to avoid Row-Level Security (RLS) issues
  */
 
 class AdminAuth {
     constructor() {
-        this.supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        // No direct Supabase client for admin operations - we'll use server API endpoints
         this.isAuthenticated = false;
         this.user = null;
         this.initialized = false;

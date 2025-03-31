@@ -1,10 +1,34 @@
 // Main site functionality
 
+// Ensure we have configuration values
+function getConfigValue(key, fallback) {
+    if (window.CONFIG && typeof CONFIG[key] !== 'undefined') {
+        return CONFIG[key];
+    }
+    if (window.ENV && typeof ENV[key] !== 'undefined') {
+        return ENV[key];
+    }
+    return fallback;
+}
+
+// Default configuration values if CONFIG is not defined
+const DEFAULT_CONFIG = {
+    TIMEZONE: '+08:00',
+    DEFAULT_DATE_FORMAT: 'YYYY-MM-DD',
+    DEFAULT_DATE_RANGE: {
+        START_OFFSET: 0,
+        END_OFFSET: 28
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize date range picker
     if (document.getElementById('daterange')) {
-        const today = moment().utcOffset(CONFIG.TIMEZONE);
-        const endDate = moment().utcOffset(CONFIG.TIMEZONE).add(CONFIG.DEFAULT_DATE_RANGE.END_OFFSET, 'days');
+        const timezone = getConfigValue('TIMEZONE', DEFAULT_CONFIG.TIMEZONE);
+        const defaultEndOffset = getConfigValue('DEFAULT_DATE_RANGE', DEFAULT_CONFIG.DEFAULT_DATE_RANGE).END_OFFSET;
+        
+        const today = moment().utcOffset(timezone);
+        const endDate = moment().utcOffset(timezone).add(defaultEndOffset, 'days');
         
         $('#daterange').daterangepicker({
             startDate: today,
@@ -14,17 +38,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 format: 'MMMM D, YYYY'
             },
             ranges: {
-                'Next Week': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(7, 'days')],
-                'Next 2 Weeks': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(14, 'days')],
-                'Next Month': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(1, 'month')],
-                'Next 2 Months': [moment().utcOffset(CONFIG.TIMEZONE), moment().utcOffset(CONFIG.TIMEZONE).add(2, 'months')]
+                'Next Week': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(7, 'days')],
+                'Next 2 Weeks': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(14, 'days')],
+                'Next Month': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(1, 'month')],
+                'Next 2 Months': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(2, 'months')]
             }
         });
         
         // Update map when date range changes
         $('#daterange').on('apply.daterangepicker', function(ev, picker) {
-            const startDate = picker.startDate.format(CONFIG.DEFAULT_DATE_FORMAT);
-            const endDate = picker.endDate.format(CONFIG.DEFAULT_DATE_FORMAT);
+            const dateFormat = getConfigValue('DEFAULT_DATE_FORMAT', DEFAULT_CONFIG.DEFAULT_DATE_FORMAT);
+            const startDate = picker.startDate.format(dateFormat);
+            const endDate = picker.endDate.format(dateFormat);
             
             mapController.setDateRange(startDate, endDate);
             
@@ -40,8 +65,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle council selection change
     document.getElementById('council')?.addEventListener('change', function() {
         const councilId = this.value;
-        const startDate = $('#daterange').data('daterangepicker').startDate.format(CONFIG.DEFAULT_DATE_FORMAT);
-        const endDate = $('#daterange').data('daterangepicker').endDate.format(CONFIG.DEFAULT_DATE_FORMAT);
+        const dateFormat = getConfigValue('DEFAULT_DATE_FORMAT', DEFAULT_CONFIG.DEFAULT_DATE_FORMAT);
+        const startDate = $('#daterange').data('daterangepicker').startDate.format(dateFormat);
+        const endDate = $('#daterange').data('daterangepicker').endDate.format(dateFormat);
         
         mapController.setDateRange(startDate, endDate);
         
