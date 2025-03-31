@@ -67,6 +67,17 @@ a.council-badge:hover {
     color: #0a58ca;
 }
 
+/* Action button spacing */
+.btn-sm.edit-btn,
+.btn-sm.delete-btn {
+    margin-right: 8px;
+}
+
+.btn-sm.edit-btn:last-child,
+.btn-sm.delete-btn:last-child {
+    margin-right: 0;
+}
+
 .sidebar {
     position: fixed;
     top: 0;

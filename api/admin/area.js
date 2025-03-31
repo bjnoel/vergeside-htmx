@@ -80,7 +80,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
   // Create a new area
   router.post('/', requireAdminAuth, async (req, res) => {
     try {
-      const { name, council_id, description, active } = req.body;
+      const { name, council_id } = req.body;
       
       // Validate required fields
       if (!name) {
@@ -99,9 +99,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
       
       const insertData = {
         name,
-        council_id: parseInt(council_id, 10),
-        description: description || null,
-        active: active !== undefined ? active : true
+        council_id: parseInt(council_id, 10)
       };
       
       console.log('Inserting area with data:', insertData);
@@ -145,7 +143,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
         });
       }
       
-      const { name, council_id, description, active } = req.body;
+      const { name, council_id } = req.body;
       
       // Validate required fields
       if (!name) {
@@ -164,9 +162,7 @@ module.exports = function(adminSupabase, requireAdminAuth) {
       
       const updateData = {
         name,
-        council_id: parseInt(council_id, 10),
-        description: description || null,
-        active: active !== undefined ? active : true
+        council_id: parseInt(council_id, 10)
       };
       
       console.log(`Updating area ${areaId} with data:`, updateData);

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Areas - Vergeside Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/admin/css/admin.css">
 </head>
 <body>
@@ -42,16 +43,12 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Add New Area</h5>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
-                    Hide Form
+                    Show Form
                 </button>
             </div>
-            <div class="card-body" id="area-form-container">
+            <div class="card-body" id="area-form-container" style="display: none;">
                 <form id="area-form">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="area-name" class="form-label">Area Name*</label>
-                            <input type="text" class="form-control" id="area-name" required>
-                        </div>
                         <div class="col-md-6 mb-3">
                             <label for="council-id" class="form-label">Council*</label>
                             <select class="form-select" id="council-id" required>
@@ -59,16 +56,10 @@
                                 <!-- Councils will be loaded here -->
                             </select>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="area-description" class="form-label">Description</label>
-                        <textarea class="form-control" id="area-description" rows="3" placeholder="Enter any notes or additional information about this area..."></textarea>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="area-active" checked>
-                        <label class="form-check-label" for="area-active">
-                            Active
-                        </label>
+                        <div class="col-md-6 mb-3">
+                            <label for="area-name" class="form-label">Area Name*</label>
+                            <input type="text" class="form-control" id="area-name" required>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Area</button>
                 </form>
@@ -96,9 +87,8 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Name</th>
                                 <th>Council</th>
-                                <th>Status</th>
+                                <th>Name</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -126,10 +116,6 @@
                     <form id="edit-area-form">
                         <input type="hidden" id="edit-id">
                         <div class="mb-3">
-                            <label for="edit-name" class="form-label">Area Name*</label>
-                            <input type="text" class="form-control" id="edit-name" required>
-                        </div>
-                        <div class="mb-3">
                             <label for="edit-council-id" class="form-label">Council*</label>
                             <select class="form-select" id="edit-council-id" required>
                                 <option value="">Select Council</option>
@@ -137,14 +123,8 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit-description" class="form-label">Description</label>
-                            <textarea class="form-control" id="edit-description" rows="3"></textarea>
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="edit-active">
-                            <label class="form-check-label" for="edit-active">
-                                Active
-                            </label>
+                            <label for="edit-name" class="form-label">Area Name*</label>
+                            <input type="text" class="form-control" id="edit-name" required>
                         </div>
                     </form>
                 </div>
@@ -165,8 +145,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete this area? This action cannot be undone.</p>
-                    <p class="text-danger">Warning: Deleting an area will also delete all associated pickup schedules.</p>
+                    <div class="alert alert-danger">
+                        <h5 class="mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Warning!</h5>
+                        <p>You are about to permanently delete this area. This action <strong>cannot be undone</strong>.</p>
+                        <p class="mb-0">If you delete this area, all associated pickup schedules will also be deleted.</p>
+                    </div>
+                    <p class="mt-3 mb-0">Are you sure you want to delete this area?</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -301,15 +285,10 @@
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${area.id}</td>
-                                <td>${area.name}</td>
                                 <td>${area.council ? area.council.name : 'N/A'}</td>
+                                <td>${area.name}</td>
                                 <td>
-                                    ${area.active ? 
-                                        '<span class="badge bg-success">Active</span>' : 
-                                        '<span class="badge bg-secondary">Inactive</span>'}
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary edit-btn" data-id="${area.id}">
+                                    <button class="btn btn-sm btn-primary edit-btn me-2" data-id="${area.id}">
                                         Edit
                                     </button>
                                     <button class="btn btn-sm btn-danger delete-btn" data-id="${area.id}">
@@ -349,8 +328,6 @@
                 
                 const name = document.getElementById('area-name').value.trim();
                 const councilId = document.getElementById('council-id').value;
-                const description = document.getElementById('area-description').value.trim();
-                const active = document.getElementById('area-active').checked;
                 
                 if (!name) {
                     showToast('Area name is required', 'warning');
@@ -373,9 +350,7 @@
                         },
                         body: JSON.stringify({ 
                             name, 
-                            council_id: councilId,
-                            description: description || null,
-                            active
+                            council_id: councilId
                         })
                     });
                     
@@ -412,10 +387,8 @@
                     const data = result.data;
                     
                     document.getElementById('edit-id').value = data.id;
-                    document.getElementById('edit-name').value = data.name;
                     document.getElementById('edit-council-id').value = data.council_id || '';
-                    document.getElementById('edit-description').value = data.description || '';
-                    document.getElementById('edit-active').checked = data.active;
+                    document.getElementById('edit-name').value = data.name;
                     
                     editAreaModal.show();
                 } catch (error) {
@@ -431,8 +404,6 @@
                 const id = document.getElementById('edit-id').value;
                 const name = document.getElementById('edit-name').value.trim();
                 const councilId = document.getElementById('edit-council-id').value;
-                const description = document.getElementById('edit-description').value.trim();
-                const active = document.getElementById('edit-active').checked;
                 
                 if (!name) {
                     showToast('Area name is required', 'warning');
@@ -456,9 +427,7 @@
                         },
                         body: JSON.stringify({ 
                             name, 
-                            council_id: councilId,
-                            description: description || null,
-                            active
+                            council_id: councilId
                         })
                     });
                     
