@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Area Polygons - Vergeside Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/admin/css/admin.css">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        #map-container {
+            height: 400px;
+            width: 100%;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 4px;
+        }
+        .coordinates-textarea {
+            font-family: monospace;
+            min-height: 150px;
+            white-space: pre;
+        }
+        .polygon-card {
+            margin-bottom: 20px;
+        }
+        .polygon-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .polygon-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .active-badge {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .coordinates-preview {
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+            font-family: monospace;
+            font-size: 0.8rem;
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+        .coordinates-preview::after {
+            content: "...";
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background-color: #f8f9fa;
+            padding: 0 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="m-0">Manage Area Polygons</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/index.html">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="/admin/areas.html">Areas</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Area Polygons</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <span id="user-email" class="me-3"></span>
+                    <button id="logout-btn" class="btn btn-outline-secondary btn-sm">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Area Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Area Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Area ID:</strong> <span id="area-id"></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Area Name:</strong> <span id="area-name"></span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Council:</strong> <span id="area-council"></span></p>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <a href="/admin/areas.html" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Areas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Polygon Form -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Add New Polygon</h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
+                    Show Form
+                </button>
+            </div>
+            <div class="card-body" id="polygon-form-container" style="display: none;">
+                <form id="polygon-form">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="polygon-active" checked>
+                            <label class="form-check-label" for="polygon-active">Active</label>
+                        </div>
+                        <small class="text-muted">Only active polygons will be displayed on the public map.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="polygon-coordinates" class="form-label">Coordinates (KML format)*</label>
+                        <textarea class="form-control coordinates-textarea" id="polygon-coordinates" rows="6" required placeholder="Paste KML coordinates here (e.g. from Google Maps export)"></textarea>
+                        <small class="text-muted">Format: "lng1,lat1,alt1 lng2,lat2,alt2 ..." or JSON array of {lat, lng} objects</small>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" id="preview-btn" class="btn btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Preview on Map
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Polygon</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Map Preview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Map Preview</h5>
+            </div>
+            <div class="card-body">
+                <div id="map-container">
+                    <div id="map"></div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> The map shows all polygons for this area. Active polygons are shown in blue, inactive polygons in gray.
+                </div>
+            </div>
+        </div>
+
+        <!-- Polygons List -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Polygon List</h5>
+            </div>
+            <div class="card-body">
+                <div id="polygons-container">
+                    <!-- Polygons will be loaded here -->
+                </div>
+                <div id="no-polygons" class="alert alert-info d-none">
+                    No polygons found for this area. Add a new polygon using the form above.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Polygon Modal -->
+    <div class="modal fade" id="edit-polygon-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Polygon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-polygon-form">
+                        <input type="hidden" id="edit-id">
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="edit-active">
+                                <label class="form-check-label" for="edit-active">Active</label>
+                            </div>
+                            <small class="text-muted">Only active polygons will be displayed on the public map.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-coordinates" class="form-label">Coordinates (KML format)*</label>
+                            <textarea class="form-control coordinates-textarea" id="edit-coordinates" rows="10" required></textarea>
+                            <small class="text-muted">Format: "lng1,lat1,alt1 lng2,lat2,alt2 ..." or JSON array of {lat, lng} objects</small>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" id="edit-preview-btn" class="btn btn-outline-secondary">
+                                <i class="bi bi-eye"></i> Preview on Map
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-polygon-btn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <h5 class="mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Warning!</h5>
+                        <p>You are about to permanently delete this polygon. This action <strong>cannot be undone</strong>.</p>
+                    </div>
+                    <p class="mt-3 mb-0">Are you sure you want to delete this polygon?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    <script src="/js/env-config.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/admin/js/admin-auth.js"></script>
+    <script>
+        // Global variables
+        let map = null;
+        let mapPolygons = [];
+        let previewPolygon = null;
+        let areaId = null;
+        
+        // Initialize Mapbox Map
+        function initMap() {
+            // Set access token from environment
+            mapboxgl.accessToken = window.ENV.MAPBOX_TOKEN || window.MAPBOX_TOKEN || '';
+            
+            if (!mapboxgl.accessToken) {
+                console.error('Mapbox token is missing');
+                document.getElementById('map').innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <h5>Map Configuration Error</h5>
+                        <p>Please set a valid Mapbox token.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create map centered on Perth, WA
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [115.8605, -31.9505], // Note: Mapbox uses [lng, lat] format
+                zoom: 10
+            });
+            
+            // Add navigation controls
+            map.addControl(new mapboxgl.NavigationControl());
+            
+            // If the page is already loaded, initialize the app
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                map.on('load', () => {
+                    initApp();
+                });
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the Mapbox map
+            initMap();
+        });
+        
+        // Initialize the application
+        async function initApp() {
+            // Elements
+            const loadingElement = document.getElementById('loading');
+            const userEmail = document.getElementById('user-email');
+            const logoutBtn = document.getElementById('logout-btn');
+            const areaIdElement = document.getElementById('area-id');
+            const areaNameElement = document.getElementById('area-name');
+            const areaCouncilElement = document.getElementById('area-council');
+            const polygonsContainer = document.getElementById('polygons-container');
+            const noPolygons = document.getElementById('no-polygons');
+            const polygonForm = document.getElementById('polygon-form');
+            const toggleFormBtn = document.getElementById('toggle-form-btn');
+            const polygonFormContainer = document.getElementById('polygon-form-container');
+            const previewBtn = document.getElementById('preview-btn');
+            const editPreviewBtn = document.getElementById('edit-preview-btn');
+            
+            // Modal elements
+            const editPolygonModal = new bootstrap.Modal(document.getElementById('edit-polygon-modal'));
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirm-modal'));
+            const savePolygonBtn = document.getElementById('save-polygon-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            
+            let deletePolygonId = null;
+            
+            // Get area ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            areaId = urlParams.get('area_id');
+            
+            if (!areaId) {
+                showToast('No area ID provided', 'danger');
+                window.location.href = '/admin/areas.html';
+                return;
+            }
+            
+            // Wait for authentication to be initialized
+            await adminAuth.waitForInitialization();
+            
+            // Check if user is authenticated
+            if (!adminAuth.isAdmin()) {
+                window.location.href = '/admin/index.html';
+                return;
+            }
+            
+            // Set user email
+            userEmail.textContent = adminAuth.getUser().email;
+            
+            // Load area details and polygons
+            await loadAreaDetails();
+            await loadPolygons();
+            
+            // Hide loading screen
+            loadingElement.classList.add('d-none');
+            
+            // Load area details
+            async function loadAreaDetails() {
+                try {
+                    const response = await fetch(`/api/admin/area/${areaId}`);
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error loading area details');
+                    }
+                    
+                    const result = await response.json();
+                    const area = result.data;
+                    
+                    // Display area details
+                    areaIdElement.textContent = area.id;
+                    areaNameElement.textContent = area.name;
+                    areaCouncilElement.textContent = area.council ? area.council.name : 'N/A';
+                    
+                    // Update page title
+                    document.title = `Manage Polygons: ${area.name} - Vergeside Admin`;
+                    
+                    // Center map on area if we have polygons
+                    if (area.council) {
+                        // You could center the map on the council's general area if known
+                        // For now, we'll just rely on the polygon bounds later
+                    }
+                } catch (error) {
+                    console.error('Error loading area details:', error);
+                    showToast('Error loading area details', 'danger');
+                }
+            }
+            
+            // Load polygons for the area
+            async function loadPolygons() {
+                try {
+                    const response = await fetch(`/api/admin/area_polygon?area_id=${areaId}`);
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error loading polygons');
+                    }
+                    
+                    const result = await response.json();
+                    const polygons = result.data || [];
+                    
+                    // Clear existing polygons from map
+                    clearMapPolygons();
+                    
+                    // Display polygons in list and on map
+                    polygonsContainer.innerHTML = '';
+                    
+                    if (polygons.length === 0) {
+                        noPolygons.classList.remove('d-none');
+                    } else {
+                        noPolygons.classList.add('d-none');
+                        
+                        // Create bounds for all polygons
+                        const bounds = new mapboxgl.LngLatBounds();
+                        let hasValidPolygons = false;
+                        
+                        polygons.forEach((polygon, index) => {
+                            // Add to list
+                            const card = createPolygonCard(polygon);
+                            polygonsContainer.appendChild(card);
+                            
+                            // Add to map
+                            try {
+                                const paths = parseCoordinates(polygon.coordinates);
+                                if (paths && paths.length > 0) {
+                                    // Create unique ID for this polygon
+                                    const sourceId = `polygon-${polygon.id}-source`;
+                                    const layerId = `polygon-${polygon.id}-layer`;
+                                    const outlineLayerId = `polygon-${polygon.id}-outline`;
+                                    
+                                    // Add source if map is loaded
+                                    if (map.loaded()) {
+                                        // Convert to GeoJSON format
+                                        const geojson = {
+                                            type: 'Feature',
+                                            properties: {
+                                                id: polygon.id,
+                                                active: polygon.active
+                                            },
+                                            geometry: {
+                                                type: 'Polygon',
+                                                coordinates: [paths.map(path => [path.lng, path.lat])]
+                                            }
+                                        };
+                                        
+                                        // Add source for this polygon
+                                        if (!map.getSource(sourceId)) {
+                                            map.addSource(sourceId, {
+                                                type: 'geojson',
+                                                data: {
+                                                    type: 'FeatureCollection',
+                                                    features: [geojson]
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Add fill layer for this polygon
+                                        if (!map.getLayer(layerId)) {
+                                            map.addLayer({
+                                                id: layerId,
+                                                type: 'fill',
+                                                source: sourceId,
+                                                paint: {
+                                                    'fill-color': polygon.active ? '#0d6efd' : '#6c757d',
+                                                    'fill-opacity': 0.35
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Add outline layer for this polygon
+                                        if (!map.getLayer(outlineLayerId)) {
+                                            map.addLayer({
+                                                id: outlineLayerId,
+                                                type: 'line',
+                                                source: sourceId,
+                                                paint: {
+                                                    'line-color': polygon.active ? '#0d6efd' : '#6c757d',
+                                                    'line-width': 2
+                                                }
+                                            });
+                                        }
+                                        
+                                        // Store references to layers
+                                        mapPolygons.push({
+                                            id: polygon.id,
+                                            sourceId: sourceId,
+                                            layerId: layerId,
+                                            outlineLayerId: outlineLayerId
+                                        });
+                                        
+                                        // Add click handler for this polygon
+                                        map.on('click', layerId, (e) => {
+                                            const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
+                                            if (!features.length) return;
+                                            
+                                            const feature = features[0];
+                                            const popupContent = `
+                                                <div>
+                                                    <h6>Polygon #${feature.properties.id}</h6>
+                                                    <p><strong>Status:</strong> ${feature.properties.active ? 'Active' : 'Inactive'}</p>
+                                                </div>
+                                            `;
+                                            
+                                            new mapboxgl.Popup()
+                                                .setLngLat(e.lngLat)
+                                                .setHTML(popupContent)
+                                                .addTo(map);
+                                        });
+                                        
+                                        // Change cursor when hovering over polygon
+                                        map.on('mouseenter', layerId, () => {
+                                            map.getCanvas().style.cursor = 'pointer';
+                                        });
+                                        
+                                        map.on('mouseleave', layerId, () => {
+                                            map.getCanvas().style.cursor = '';
+                                        });
+                                    }
+                                    
+                                    // Extend bounds to include this polygon
+                                    paths.forEach(path => {
+                                        bounds.extend([path.lng, path.lat]);
+                                        hasValidPolygons = true;
+                                    });
+                                }
+                            } catch (error) {
+                                console.error(`Error adding polygon ${polygon.id} to map:`, error);
+                            }
+                        });
+                        
+                        // Fit map to bounds if we have valid polygons
+                        if (hasValidPolygons) {
+                            map.fitBounds(bounds, { padding: 40 });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading polygons:', error);
+                    showToast('Error loading polygons', 'danger');
+                }
+            }
+            
+            // Create a card element for a polygon
+            function createPolygonCard(polygon) {
+                const card = document.createElement('div');
+                card.className = 'polygon-card card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <h6 class="mb-0">Polygon #${polygon.id}</h6>
+                            <span class="badge ${polygon.active ? 'bg-success' : 'bg-secondary'} active-badge">
+                                ${polygon.active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="polygon-actions">
+                            <button class="btn btn-sm btn-primary edit-btn" data-id="${polygon.id}">
+                                Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="${polygon.id}">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="coordinates-preview">${polygon.coordinates}</div>
+                    </div>
+                `;
+                
+                // Add event listeners
+                card.querySelector('.edit-btn').addEventListener('click', () => {
+                    openEditModal(polygon.id);
+                });
+                
+                card.querySelector('.delete-btn').addEventListener('click', () => {
+                    openDeleteConfirmation(polygon.id);
+                });
+                
+                return card;
+            }
+            
+            // Parse coordinates from string to Google Maps LatLng array
+            function parseCoordinates(coordinateString) {
+                if (!coordinateString || coordinateString.trim() === '') {
+                    return [];
+                }
+                
+                try {
+                    // First try to parse as JSON
+                    if (coordinateString.trim().startsWith('[')) {
+                        return JSON.parse(coordinateString);
+                    }
+                    
+                    // If not JSON, assume KML format: "lng1,lat1,alt1 lng2,lat2,alt2 ..."
+                    return coordinateString.trim().split(' ').map(coord => {
+                        const parts = coord.split(',');
+                        if (parts.length >= 2) {
+                            return { 
+                                lat: parseFloat(parts[1]), 
+                                lng: parseFloat(parts[0])
+                            };
+                        }
+                        return null;
+                    }).filter(point => point !== null);
+                } catch (error) {
+                    console.error('Error parsing coordinates:', error);
+                    return [];
+                }
+            }
+            
+            // Calculate center of a polygon
+            function calculatePolygonCenter(paths) {
+                if (!paths || paths.length === 0) {
+                    return { lng: 0, lat: 0 };
+                }
+                
+                // Calculate the average of all points
+                let sumLat = 0;
+                let sumLng = 0;
+                
+                paths.forEach(path => {
+                    sumLat += path.lat;
+                    sumLng += path.lng;
+                });
+                
+                return {
+                    lng: sumLng / paths.length,
+                    lat: sumLat / paths.length
+                };
+            }
+            
+            // Clear all polygons from the map
+            function clearMapPolygons() {
+                if (!map || !map.loaded()) return;
+                
+                mapPolygons.forEach(item => {
+                    if (map.getLayer(item.outlineLayerId)) {
+                        map.removeLayer(item.outlineLayerId);
+                    }
+                    if (map.getLayer(item.layerId)) {
+                        map.removeLayer(item.layerId);
+                    }
+                    if (map.getSource(item.sourceId)) {
+                        map.removeSource(item.sourceId);
+                    }
+                });
+                mapPolygons = [];
+                
+                // Remove preview polygon
+                if (previewPolygon) {
+                    if (map.getLayer('preview-polygon-outline')) {
+                        map.removeLayer('preview-polygon-outline');
+                    }
+                    if (map.getLayer('preview-polygon')) {
+                        map.removeLayer('preview-polygon');
+                    }
+                    if (map.getSource('preview-polygon-source')) {
+                        map.removeSource('preview-polygon-source');
+                    }
+                    previewPolygon = null;
+                }
+            }
+            
+            // Preview coordinates on the map
+            function previewCoordinates(coordinateString) {
+                // Make sure map is loaded
+                if (!map || !map.loaded()) return false;
+                
+                // Remove existing preview polygon
+                if (previewPolygon) {
+                    if (map.getLayer('preview-polygon-outline')) {
+                        map.removeLayer('preview-polygon-outline');
+                    }
+                    if (map.getLayer('preview-polygon')) {
+                        map.removeLayer('preview-polygon');
+                    }
+                    if (map.getSource('preview-polygon-source')) {
+                        map.removeSource('preview-polygon-source');
+                    }
+                    previewPolygon = null;
+                }
+                
+                try {
+                    const paths = parseCoordinates(coordinateString);
+                    if (paths && paths.length > 0) {
+                        // Convert to GeoJSON format
+                        const geojson = {
+                            type: 'Feature',
+                            properties: {},
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [paths.map(path => [path.lng, path.lat])]
+                            }
+                        };
+                        
+                        // Create bounds to fit this polygon
+                        const bounds = new mapboxgl.LngLatBounds();
+                        paths.forEach(path => {
+                            bounds.extend([path.lng, path.lat]);
+                        });
+                        
+                        // Add source for preview polygon
+                        map.addSource('preview-polygon-source', {
+                            type: 'geojson',
+                            data: {
+                                type: 'FeatureCollection',
+                                features: [geojson]
+                            }
+                        });
+                        
+                        // Add fill layer
+                        map.addLayer({
+                            id: 'preview-polygon',
+                            type: 'fill',
+                            source: 'preview-polygon-source',
+                            paint: {
+                                'fill-color': '#ff0000',
+                                'fill-opacity': 0.35
+                            }
+                        });
+                        
+                        // Add outline layer
+                        map.addLayer({
+                            id: 'preview-polygon-outline',
+                            type: 'line',
+                            source: 'preview-polygon-source',
+                            paint: {
+                                'line-color': '#ff0000',
+                                'line-width': 2
+                            }
+                        });
+                        
+                        // Keep track of preview polygon
+                        previewPolygon = true;
+                        
+                        // Fit map to polygon
+                        map.fitBounds(bounds, { padding: 40 });
+                        
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Error previewing coordinates:', error);
+                    return false;
+                }
+                
+                return false;
+            }
+            
+            // Add new polygon
+            async function addPolygon(e) {
+                e.preventDefault();
+                
+                const active = document.getElementById('polygon-active').checked;
+                const coordinates = document.getElementById('polygon-coordinates').value.trim();
+                
+                if (!coordinates) {
+                    showToast('Coordinates are required', 'warning');
+                    return;
+                }
+                
+                // Validate coordinates
+                try {
+                    const paths = parseCoordinates(coordinates);
+                    if (!paths || paths.length < 3) {
+                        showToast('Invalid coordinates format or not enough points', 'warning');
+                        return;
+                    }
+                } catch (error) {
+                    showToast('Invalid coordinates format', 'warning');
+                    return;
+                }
+                
+                showLoading();
+                
+                try {
+                    const response = await fetch('/api/admin/area_polygon', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            area_id: areaId,
+                            active,
+                            coordinates
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error adding polygon');
+                    }
+                    
+                    showToast('Polygon added successfully', 'success');
+                    polygonForm.reset();
+                    
+                    // Remove preview polygon
+                    if (previewPolygon) {
+                        if (map.getLayer('preview-polygon-outline')) {
+                            map.removeLayer('preview-polygon-outline');
+                        }
+                        if (map.getLayer('preview-polygon')) {
+                            map.removeLayer('preview-polygon');
+                        }
+                        if (map.getSource('preview-polygon-source')) {
+                            map.removeSource('preview-polygon-source');
+                        }
+                        previewPolygon = null;
+                    }
+                    
+                    // Reload polygons
+                    await loadPolygons();
+                } catch (error) {
+                    console.error('Error adding polygon:', error);
+                    showToast('Error adding polygon', 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Open edit modal with polygon data
+            async function openEditModal(id) {
+                showLoading();
+                
+                try {
+                    const response = await fetch(`/api/admin/area_polygon/${id}`);
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error fetching polygon data');
+                    }
+                    
+                    const result = await response.json();
+                    const polygon = result.data;
+                    
+                    document.getElementById('edit-id').value = polygon.id;
+                    document.getElementById('edit-active').checked = polygon.active;
+                    document.getElementById('edit-coordinates').value = polygon.coordinates;
+                    
+                    editPolygonModal.show();
+                } catch (error) {
+                    console.error('Error opening edit modal:', error);
+                    showToast('Error fetching polygon data', 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Save polygon edits
+            async function savePolygonChanges() {
+                const id = document.getElementById('edit-id').value;
+                const active = document.getElementById('edit-active').checked;
+                const coordinates = document.getElementById('edit-coordinates').value.trim();
+                
+                if (!coordinates) {
+                    showToast('Coordinates are required', 'warning');
+                    return;
+                }
+                
+                // Validate coordinates
+                try {
+                    const paths = parseCoordinates(coordinates);
+                    if (!paths || paths.length < 3) {
+                        showToast('Invalid coordinates format or not enough points', 'warning');
+                        return;
+                    }
+                } catch (error) {
+                    showToast('Invalid coordinates format', 'warning');
+                    return;
+                }
+                
+                showLoading();
+                editPolygonModal.hide();
+                
+                try {
+                    const response = await fetch(`/api/admin/area_polygon/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            active,
+                            coordinates
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error updating polygon');
+                    }
+                    
+                    showToast('Polygon updated successfully', 'success');
+                    
+                    // Remove preview polygon
+                    if (previewPolygon) {
+                        if (map.getLayer('preview-polygon-outline')) {
+                            map.removeLayer('preview-polygon-outline');
+                        }
+                        if (map.getLayer('preview-polygon')) {
+                            map.removeLayer('preview-polygon');
+                        }
+                        if (map.getSource('preview-polygon-source')) {
+                            map.removeSource('preview-polygon-source');
+                        }
+                        previewPolygon = null;
+                    }
+                    
+                    // Reload polygons
+                    await loadPolygons();
+                } catch (error) {
+                    console.error('Error updating polygon:', error);
+                    showToast('Error updating polygon', 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Open delete confirmation modal
+            function openDeleteConfirmation(id) {
+                deletePolygonId = id;
+                confirmModal.show();
+            }
+            
+            // Delete polygon
+            async function deletePolygon() {
+                if (!deletePolygonId) return;
+                
+                showLoading();
+                confirmModal.hide();
+                
+                try {
+                    const response = await fetch(`/api/admin/area_polygon/${deletePolygonId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error deleting polygon');
+                    }
+                    
+                    showToast('Polygon deleted successfully', 'success');
+                    deletePolygonId = null;
+                    
+                    // Reload polygons
+                    await loadPolygons();
+                } catch (error) {
+                    console.error('Error deleting polygon:', error);
+                    showToast('Error deleting polygon', 'danger');
+                } finally {
+                    hideLoading();
+                }
+            }
+            
+            // Toggle form visibility
+            function toggleFormVisibility() {
+                if (polygonFormContainer.style.display === 'none') {
+                    polygonFormContainer.style.display = 'block';
+                    toggleFormBtn.textContent = 'Hide Form';
+                } else {
+                    polygonFormContainer.style.display = 'none';
+                    toggleFormBtn.textContent = 'Show Form';
+                }
+            }
+            
+            // Show loading overlay
+            function showLoading() {
+                loadingElement.classList.remove('d-none');
+            }
+            
+            // Hide loading overlay
+            function hideLoading() {
+                loadingElement.classList.add('d-none');
+            }
+            
+            // Show toast notification
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 3000
+                });
+                
+                bsToast.show();
+                
+                // Remove toast after it's hidden
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                });
+            }
+            
+            // Event listeners
+            logoutBtn.addEventListener('click', async () => {
+                await adminAuth.signOut();
+            });
+            
+            polygonForm.addEventListener('submit', addPolygon);
+            savePolygonBtn.addEventListener('click', savePolygonChanges);
+            confirmDeleteBtn.addEventListener('click', deletePolygon);
+            toggleFormBtn.addEventListener('click', toggleFormVisibility);
+            
+            // Preview buttons
+            previewBtn.addEventListener('click', () => {
+                const coordinates = document.getElementById('polygon-coordinates').value.trim();
+                if (!coordinates) {
+                    showToast('Please enter coordinates to preview', 'warning');
+                    return;
+                }
+                
+                const success = previewCoordinates(coordinates);
+                if (!success) {
+                    showToast('Invalid coordinates format', 'warning');
+                }
+            });
+            
+            editPreviewBtn.addEventListener('click', () => {
+                const coordinates = document.getElementById('edit-coordinates').value.trim();
+                if (!coordinates) {
+                    showToast('Please enter coordinates to preview', 'warning');
+                    return;
+                }
+                
+                const success = previewCoordinates(coordinates);
+                if (!success) {
+                    showToast('Invalid coordinates format', 'warning');
+                }
+            });
+        });
+    </script>
+    
+    <!-- Mapbox API -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>

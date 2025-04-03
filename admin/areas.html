@@ -89,6 +89,7 @@
                                 <th>ID</th>
                                 <th>Council</th>
                                 <th>Name</th>
+                                <th>Polygons</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -287,6 +288,11 @@
                                 <td>${area.id}</td>
                                 <td>${area.council ? area.council.name : 'N/A'}</td>
                                 <td>${area.name}</td>
+                                <td>
+                                    <a href="/admin/area_polygons.html?area_id=${area.id}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-geo-alt"></i> Edit Polygons
+                                    </a>
+                                </td>
                                 <td>
                                     <button class="btn btn-sm btn-primary edit-btn me-2" data-id="${area.id}">
                                         Edit
