@@ -273,3 +273,4 @@ logs/*
 
 /Vergeside/wwwroot/maps/*
 /out/*
+/.wrangler/*

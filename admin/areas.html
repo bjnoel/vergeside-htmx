@@ -188,60 +188,66 @@
             const searchBtn = document.getElementById('search-btn');
             const councilSelect = document.getElementById('council-id');
             const editCouncilSelect = document.getElementById('edit-council-id');
-            
+
             // Modal elements
             const editAreaModal = new bootstrap.Modal(document.getElementById('edit-area-modal'));
             const confirmModal = new bootstrap.Modal(document.getElementById('confirm-modal'));
             const saveAreaBtn = document.getElementById('save-area-btn');
             const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-            
+
             let deleteAreaId = null;
-            
-            // Wait for authentication to be initialized
-            await adminAuth.waitForInitialization();
-            
-            // Check if user is authenticated
+            // let authToken = null; // Removed - will get token directly
+
+            // Check if user is authenticated (init runs synchronously now)
             if (!adminAuth.isAdmin()) {
-                window.location.href = '/admin/index.html';
+                console.error('Authentication failed.');
+                // adminAuth.init() should have already redirected if needed
                 return;
             }
-            
+
             // Set user email
-            userEmail.textContent = adminAuth.getUser().email;
-            
+            const user = adminAuth.getUser();
+            userEmail.textContent = user ? user.email : 'N/A';
+
             // Hide loading screen
             loadingElement.classList.add('d-none');
-            
+
             // Load councils for dropdown
             await loadCouncils();
-            
+
             // Load areas
             loadAreas();
-            
+
             // Load councils from database
-            async function loadCouncils() {
+            async function loadCouncils() { // Removed token parameter
                 try {
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
                     // Use fetch API to call the server endpoint
-                    const response = await fetch('/api/admin/council');
-                    
+                    const response = await fetch('/api/admin/council', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error loading councils');
                     }
-                    
+
                     const result = await response.json();
                     const data = result.data || [];
-                    
+
                     // Populate council dropdowns
                     councilSelect.innerHTML = '<option value="">Select Council</option>';
                     editCouncilSelect.innerHTML = '<option value="">Select Council</option>';
-                    
+
                     data.forEach(council => {
                         const option = document.createElement('option');
                         option.value = council.id;
                         option.textContent = council.name;
                         councilSelect.appendChild(option);
-                        
+
                         const editOption = document.createElement('option');
                         editOption.value = council.id;
                         editOption.textContent = council.name;
@@ -252,36 +258,42 @@
                     showToast('Error loading councils', 'danger');
                 }
             }
-            
+
             // Load areas from database
-            async function loadAreas(searchTerm = '') {
+            async function loadAreas(searchTerm = '') { // Removed token parameter
                 showLoading();
-                
+
                 try {
                     // Use fetch API to call the server endpoint
                     let url = '/api/admin/area';
                     if (searchTerm) {
                         url += `?search=${encodeURIComponent(searchTerm)}`;
                     }
-                    
-                    const response = await fetch(url);
-                    
+
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
+                    const response = await fetch(url, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error loading areas');
                     }
-                    
+
                     const result = await response.json();
                     const data = result.data || [];
-                    
+
                     // Display areas in table
                     areasTable.innerHTML = '';
-                    
+
                     if (data.length === 0) {
                         noAreas.classList.remove('d-none');
                     } else {
                         noAreas.classList.add('d-none');
-                        
+
                         data.forEach(area => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
@@ -304,15 +316,15 @@
                             `;
                             areasTable.appendChild(row);
                         });
-                        
+
                         // Add event listeners to buttons
                         document.querySelectorAll('.edit-btn').forEach(btn => {
                             btn.addEventListener('click', (e) => {
                                 const id = e.target.getAttribute('data-id');
-                                openEditModal(id);
+                                openEditModal(id); // Removed token passing
                             });
                         });
-                        
+
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', (e) => {
                                 const id = e.target.getAttribute('data-id');
@@ -327,47 +339,49 @@
                     hideLoading();
                 }
             }
-            
+
             // Add new area
-            async function addArea(e) {
+            async function addArea(e) { // Removed token parameter
                 e.preventDefault();
-                
+
                 const name = document.getElementById('area-name').value.trim();
                 const councilId = document.getElementById('council-id').value;
-                
+
                 if (!name) {
                     showToast('Area name is required', 'warning');
                     return;
                 }
-                
+
                 if (!councilId) {
                     showToast('Please select a council', 'warning');
                     return;
                 }
-                
+
                 showLoading();
-                
+
                 try {
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
                     // Use fetch API to call the server endpoint
                     const response = await fetch('/api/admin/area', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ 
-                            name, 
+                        body: JSON.stringify({
+                            name,
                             council_id: councilId
                         })
                     });
-                    
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error adding area');
                     }
-                    
                     showToast('Area added successfully', 'success');
                     areaForm.reset();
-                    loadAreas();
+                    loadAreas(); // Reload areas
                 } catch (error) {
                     console.error('Error adding area:', error);
                     showToast('Error adding area', 'danger');
@@ -375,27 +389,33 @@
                     hideLoading();
                 }
             }
-            
+
             // Open edit modal with area data
-            async function openEditModal(id) {
+            async function openEditModal(id) { // Removed token parameter
                 showLoading();
-                
+
                 try {
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
                     // Use fetch API to get area details
-                    const response = await fetch(`/api/admin/area/${id}`);
-                    
+                    const response = await fetch(`/api/admin/area/${id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error fetching area data');
                     }
-                    
+
                     const result = await response.json();
                     const data = result.data;
-                    
+
                     document.getElementById('edit-id').value = data.id;
                     document.getElementById('edit-council-id').value = data.council_id || '';
                     document.getElementById('edit-name').value = data.name;
-                    
+
                     editAreaModal.show();
                 } catch (error) {
                     console.error('Error opening edit modal:', error);
@@ -404,46 +424,48 @@
                     hideLoading();
                 }
             }
-            
+
             // Save area edits
-            async function saveAreaChanges() {
+            async function saveAreaChanges() { // Removed token parameter
                 const id = document.getElementById('edit-id').value;
                 const name = document.getElementById('edit-name').value.trim();
                 const councilId = document.getElementById('edit-council-id').value;
-                
+
                 if (!name) {
                     showToast('Area name is required', 'warning');
                     return;
                 }
-                
+
                 if (!councilId) {
                     showToast('Please select a council', 'warning');
                     return;
                 }
-                
+
                 showLoading();
                 editAreaModal.hide();
-                
+
                 try {
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
                     // Use fetch API to update area
                     const response = await fetch(`/api/admin/area/${id}`, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ 
-                            name, 
+                        body: JSON.stringify({
+                            name,
                             council_id: councilId
                         })
                     });
-                    
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error updating area');
                     }
-                    
                     showToast('Area updated successfully', 'success');
-                    loadAreas();
+                    loadAreas(); // Reload areas
                 } catch (error) {
                     console.error('Error updating area:', error);
                     showToast('Error updating area', 'danger');
@@ -451,34 +473,38 @@
                     hideLoading();
                 }
             }
-            
+
             // Open delete confirmation modal
             function openDeleteConfirmation(id) {
                 deleteAreaId = id;
                 confirmModal.show();
             }
-            
+
             // Delete area
-            async function deleteArea() {
+            async function deleteArea() { // Removed token parameter
                 if (!deleteAreaId) return;
-                
+
                 showLoading();
                 confirmModal.hide();
-                
+
                 try {
+                    const token = adminAuth.getAccessToken(); // Get token directly
+                    if (!token) throw new Error('Not authenticated');
                     // Use fetch API to delete area
                     const response = await fetch(`/api/admin/area/${deleteAreaId}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
                     });
-                    
+
                     if (!response.ok) {
                         const result = await response.json();
                         throw new Error(result.error || 'Error deleting area');
                     }
-                    
                     showToast('Area deleted successfully', 'success');
                     deleteAreaId = null;
-                    loadAreas();
+                    loadAreas(); // Reload areas
                 } catch (error) {
                     console.error('Error deleting area:', error);
                     showToast('Error deleting area', 'danger');
@@ -486,7 +512,7 @@
                     hideLoading();
                 }
             }
-            
+
             // Toggle form visibility
             function toggleFormVisibility() {
                 if (areaFormContainer.style.display === 'none') {
@@ -497,23 +523,23 @@
                     toggleFormBtn.textContent = 'Show Form';
                 }
             }
-            
+
             // Search areas
-            function searchAreas() {
+            function searchAreas() { // Removed token parameter
                 const searchTerm = searchInput.value.trim();
-                loadAreas(searchTerm);
+                loadAreas(searchTerm); // Pass search term
             }
-            
+
             // Show loading overlay
             function showLoading() {
                 loadingElement.classList.remove('d-none');
             }
-            
+
             // Hide loading overlay
             function hideLoading() {
                 loadingElement.classList.add('d-none');
             }
-            
+
             // Show toast notification
             function showToast(message, type = 'info') {
                 const toastContainer = document.getElementById('toast-container');
@@ -522,7 +548,7 @@
                 toast.setAttribute('role', 'alert');
                 toast.setAttribute('aria-live', 'assertive');
                 toast.setAttribute('aria-atomic', 'true');
-                
+
                 toast.innerHTML = `
                     <div class="d-flex">
                         <div class="toast-body">
@@ -531,27 +557,28 @@
                         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
                 `;
-                
+
                 toastContainer.appendChild(toast);
-                
+
                 const bsToast = new bootstrap.Toast(toast, {
                     autohide: true,
                     delay: 3000
                 });
-                
+
                 bsToast.show();
-                
+
                 // Remove toast after it's hidden
                 toast.addEventListener('hidden.bs.toast', () => {
                     toast.remove();
                 });
             }
-            
+
             // Event listeners
             logoutBtn.addEventListener('click', async () => {
                 await adminAuth.signOut();
             });
-            
+
+            // Update event listeners to call functions directly
             areaForm.addEventListener('submit', addArea);
             saveAreaBtn.addEventListener('click', saveAreaChanges);
             confirmDeleteBtn.addEventListener('click', deleteArea);
@@ -566,3 +593,39 @@
     </script>
 </body>
 </html>
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+admin/areas.html
+
+# VSCode Open Tabs
+about.html
+contact.html
+.env
+functions/api/admin/[[path]].js
+package.json
+.dev.vars
+functions/api/auth/[[path]].js
+admin/js/admin-auth.js
+admin/areas.html
+admin/area_polygons.html
+js/config.js
+api/admin/area_polygon.js
+api/admin/area_polygon_routes.js
+api/admin/index.js
+server.js
+../vergeside/Vergeside/Controllers/ContactController.cs
+council.html
+donate.html
+faq.html
+index.html
+
+# Current Time
+4/3/2025, 11:48:10 AM (Australia/Perth, UTC+8:00)
+
+# Current Mode
+ACT MODE
+</environment_details>

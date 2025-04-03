@@ -216,9 +216,17 @@
                 }
             }
             
-            // Initial check
-            checkAuthentication();
-            
+            // Initial check using adminAuth state (init is synchronous)
+            if (adminAuth.isAdmin()) {
+                showDashboard(adminAuth.getUser());
+            } else {
+                showLogin();
+            }
+            loadingElement.classList.add('d-none'); // Hide loading after initial check
+
+            // Remove the old async checkAuthentication function
+            /* async function checkAuthentication() { ... } */
+
             // Show login screen
             function showLogin() {
                 loginContainer.classList.remove('d-none');
@@ -258,13 +266,18 @@
             // Load dashboard data
             async function loadDashboardData() {
                 try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+
+                    const headers = { 'Authorization': `Bearer ${token}` };
+
                     // Get counts using server API endpoints instead of direct Supabase calls
                     const [councilResponse, areaResponse, pickupResponse] = await Promise.all([
-                        fetch('/api/admin/council'),
-                        fetch('/api/admin/area'),
-                        fetch('/api/admin/area_pickup')
+                        fetch('/api/admin/council', { headers }),
+                        fetch('/api/admin/area', { headers }),
+                        fetch('/api/admin/area_pickup', { headers }) // Assuming this endpoint exists and needs auth
                     ]);
-                    
+
                     const councilData = await councilResponse.json();
                     const areaData = await areaResponse.json();
                     const pickupData = await pickupResponse.json();
@@ -273,12 +286,11 @@
                     councilCount.textContent = councilData.data?.length || 0;
                     areaCount.textContent = areaData.data?.length || 0;
                     pickupCount.textContent = pickupData.data?.length || 0;
-                    
                     // Get upcoming pickups - use API endpoint
                     const today = new Date().toISOString().split('T')[0];
-                    const response = await fetch(`/api/admin/area_pickup?filter=future`);
+                    const response = await fetch(`/api/admin/area_pickup?filter=future`, { headers }); // Add headers
                     const result = await response.json();
-                    
+
                     if (!response.ok) {
                         throw new Error(result.error || 'Error loading pickups');
                     }
