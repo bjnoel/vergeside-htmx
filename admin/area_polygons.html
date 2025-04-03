@@ -8,6 +8,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/admin/css/admin.css">
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+
+    <!-- Mapbox Token Configuration (FOR LOCAL DEVELOPMENT ONLY) -->
+    <script>
+        /*
+         * FOR LOCAL DEVELOPMENT ONLY
+         * Replace this with your Mapbox token for local testing
+         * In production, this will be overridden by environment variables
+         */
+        window.MAPBOX_TOKEN = 'pk.eyJ1IjoidHJlbnRpY2xlIiwiYSI6ImNtOTBuOXpzejBoNmgyaW9qNmtnbjN6aXgifQ.PdksWcpgaxxC-faGq59gPQ'; // Using the same fallback as index.html
+
+        // Apply the token to mapboxgl if available
+        if (typeof mapboxgl !== 'undefined') {
+            mapboxgl.accessToken = window.MAPBOX_TOKEN;
+        }
+    </script>
+
     <style>
         #map-container {
             height: 400px;
@@ -1039,7 +1055,7 @@
                     showToast('Invalid coordinates format', 'warning');
                 }
             });
-        });
+    } // Closing brace for initApp added here
     </script>
     
     <!-- Mapbox API -->
