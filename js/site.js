@@ -51,32 +51,53 @@ document.addEventListener('DOMContentLoaded', function() {
             const startDate = picker.startDate.format(dateFormat);
             const endDate = picker.endDate.format(dateFormat);
             
-            mapController.setDateRange(startDate, endDate);
-            
-            const councilId = $('#council').val();
-            if (councilId === 'all') {
-                mapController.loadAreas();
-            } else {
-                mapController.loadAreas(councilId);
+            // Ensure mapController is available (should be defined in mapbox-controller.js)
+            if (window.mapController) {
+                mapController.setDateRange(startDate, endDate);
+                
+                const councilId = $('#council').val();
+                if (!councilId || councilId === 'all') {
+                    mapController.loadAreas();
+                } else {
+                    mapController.loadAreas(councilId);
+                }
             }
         });
     }
     
     // Handle council selection change
-    document.getElementById('council')?.addEventListener('change', function() {
-        const councilId = this.value;
-        const dateFormat = getConfigValue('DEFAULT_DATE_FORMAT', DEFAULT_CONFIG.DEFAULT_DATE_FORMAT);
-        const startDate = $('#daterange').data('daterangepicker').startDate.format(dateFormat);
-        const endDate = $('#daterange').data('daterangepicker').endDate.format(dateFormat);
-        
-        mapController.setDateRange(startDate, endDate);
-        
-        if (councilId === 'all') {
-            mapController.loadAreas();
-        } else {
-            mapController.loadAreas(councilId);
-        }
-    });
+    const councilDropdown = document.getElementById('council');
+    if (councilDropdown) {
+        councilDropdown.addEventListener('change', function() {
+            const councilId = this.value;
+            const dateFormat = getConfigValue('DEFAULT_DATE_FORMAT', DEFAULT_CONFIG.DEFAULT_DATE_FORMAT);
+            
+            // Get date range from picker if available
+            let startDate, endDate;
+            if ($('#daterange').data('daterangepicker')) {
+                startDate = $('#daterange').data('daterangepicker').startDate.format(dateFormat);
+                endDate = $('#daterange').data('daterangepicker').endDate.format(dateFormat);
+            } else {
+                // Default date range if picker not initialized
+                const timezone = getConfigValue('TIMEZONE', DEFAULT_CONFIG.TIMEZONE);
+                const defaultEndOffset = getConfigValue('DEFAULT_DATE_RANGE', DEFAULT_CONFIG.DEFAULT_DATE_RANGE).END_OFFSET;
+                
+                startDate = moment().utcOffset(timezone).format(dateFormat);
+                endDate = moment().utcOffset(timezone).add(defaultEndOffset, 'days').format(dateFormat);
+            }
+            
+            // Update map with selected council
+            if (window.mapController) {
+                mapController.setDateRange(startDate, endDate);
+                
+                if (councilId === 'all') {
+                    mapController.loadAreas();
+                } else {
+                    mapController.loadAreas(councilId);
+                }
+            }
+        });
+    }
     
     // Populate council dropdown
     populateCouncilDropdown();
@@ -150,6 +171,35 @@ async function renderCouncilList() {
         console.error('Error rendering council list:', error);
         councilListElement.innerHTML = '<div class="col-12"><div class="alert alert-danger">Failed to load council information.</div></div>';
     }
+}
+
+// Helper function for geocoding with Mapbox
+async function geocodeAddress(address) {
+    const mapboxToken = getConfigValue('MAPBOX_TOKEN', '');
+    if (!mapboxToken) {
+        console.error('Mapbox token is missing for geocoding');
+        return null;
+    }
+    
+    try {
+        const query = encodeURIComponent(address);
+        const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?access_token=${mapboxToken}`);
+        const data = await response.json();
+        
+        if (data && data.features && data.features.length > 0) {
+            const feature = data.features[0];
+            return {
+                lat: feature.center[1],
+                lng: feature.center[0],
+                location: feature.place_name,
+                details: feature
+            };
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+    }
+    
+    return null;
 }
 
 // HTMX handlers for API responses

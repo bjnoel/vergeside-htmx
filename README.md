@@ -1,43 +1,48 @@
-# Vergeside HTMX
+# Vergeside Pickup Map
 
-A modern implementation of the Vergeside pickup map using HTMX and Supabase.
+A map of current and upcoming vergeside pickups in Perth, Western Australia.
 
-## Environment Variables
+## Mapping with Mapbox
 
-This project uses environment variables for configuration. When deploying to Cloudflare Pages, you'll need to set the following environment variables:
+This application uses Mapbox for mapping functionality. Previously it used Google Maps, but it has been migrated to Mapbox due to Google's API pricing changes.
 
-### Required Environment Variables
+### For Local Development
 
-- `MAPS_API_KEY`: Your Google Maps API key
+For browser-based local development, the token is set directly in the HTML:
 
-### Setting Up Environment Variables in Cloudflare Pages
+1. Open `index.html`
+2. Find the script block at the top with `window.MAPBOX_TOKEN`
+3. Replace the value with your actual Mapbox token
+4. This file should NOT be committed with your actual token
 
-1. Go to your Cloudflare Pages project
-2. Navigate to Settings > Environment variables
-3. Add the variable `MAPS_API_KEY` with your Google Maps API key
-4. Make sure to set it for both Production and Preview environments
+### For Production (Cloudflare Pages)
 
-Cloudflare Pages will automatically inject these variables during the build process.
+1. Add an environment variable named `MAPBOX_TOKEN` with your token value in the Cloudflare Pages dashboard
+2. Configure this for your production/staging environments
+3. The application will automatically use this environment variable when deployed
 
-## Development Setup
+### Why This Approach
 
-For local development, you can edit the values directly in `js/config.js` or create a local `.env` file.
+In a browser environment, `.env` files cannot be directly accessed without a build step. 
+Since this is a static HTML site without a bundler, we use:
 
-## Deployment
+- Direct token setting in HTML for local development
+- Environment variables for production deployments
 
-When deploying to Cloudflare Pages:
+### Security Best Practices
 
-1. Connect your GitHub repository
-2. Use the following build settings:
-   - Build command: `npm run build` (if you have a build step, otherwise leave blank)
-   - Build output directory: `/` (or your output directory if using a build tool)
-3. Set up the required environment variables as mentioned above
+- Remove your token from index.html before committing changes
+- Use different tokens for development vs. production
+- For production, use a token with URL domain restrictions
 
-## Project Structure
+## Local Development
 
-- `/js` - JavaScript files
-  - `config.js` - Configuration file that reads environment variables
-  - `env-config.js` - Helper file for injecting environment variables
-  - `supabase-client.js` - Supabase client integration
-- `/css` - Stylesheets
-- `/images` - Site images and assets
+To run the application locally:
+
+1. Make sure you've configured your Mapbox token as described above
+2. Open index.html in a web browser
+
+## Notes
+
+- The map will display an error message if the Mapbox token is missing or invalid
+- If you need to update the map style, you can change it in the `MAP_STYLE` property in `config.js`

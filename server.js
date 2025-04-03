@@ -331,6 +331,7 @@ const adminRoutes = require('./api/admin')(adminSupabase, requireAdminAuth);
 // Use admin routes
 app.use('/api/admin/council', adminRoutes.council);
 app.use('/api/admin/area', adminRoutes.area);
+app.use('/api/admin/area_polygon', adminRoutes.area_polygon);
 
 // Admin API for creating pickups
 app.post('/api/admin/area_pickup', requireAdminAuth, async (req, res) => {

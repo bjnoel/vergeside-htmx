@@ -1,17 +1,27 @@
-// This script injects environment variables from Cloudflare Pages
-// Values will be replaced during build/deploy time
-// The 'MAPS_API_KEY' global variable will be available to config.js
+// This script injects environment variables from Cloudflare Pages or direct setting
 
-// Using Cloudflare Pages standard patterns
 // Define the window.ENV object to store environment variables
 window.ENV = window.ENV || {};
 
-// Set the MAPS_API_KEY with a fallback pattern
-window.ENV.MAPS_API_KEY = '${MAPS_API_KEY}';
-// Replace placeholder pattern if it wasn't injected
-if (window.ENV.MAPS_API_KEY === '${MAPS_API_KEY}') {
-    window.ENV.MAPS_API_KEY = '';
+// Set the MAPBOX_TOKEN from environment variables in Cloudflare
+// ${MAPBOX_TOKEN} will be replaced with the actual value when deployed
+window.ENV.MAPBOX_TOKEN = '${MAPBOX_TOKEN}';
+
+// If running in Cloudflare Pages, this will be replaced
+// Otherwise, check if we already have a token set in the window
+if (window.ENV.MAPBOX_TOKEN === '${MAPBOX_TOKEN}') {
+    // Fall back to any token set directly in the HTML
+    if (!window.MAPBOX_TOKEN) {
+        window.MAPBOX_TOKEN = '';
+    }
+    window.ENV.MAPBOX_TOKEN = window.MAPBOX_TOKEN || '';
+} else {
+    // We're in production and got a token from environment variables
+    // Update the global variable
+    window.MAPBOX_TOKEN = window.ENV.MAPBOX_TOKEN;
 }
 
-// For backward compatibility
-var MAPS_API_KEY = window.ENV.MAPS_API_KEY;
+// Set the token for Mapbox GL if it's loaded and we have a token
+if (typeof mapboxgl !== 'undefined' && window.MAPBOX_TOKEN) {
+    mapboxgl.accessToken = window.MAPBOX_TOKEN;
+}

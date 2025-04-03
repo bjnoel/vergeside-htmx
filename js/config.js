@@ -19,12 +19,15 @@ function getEnv(key, fallback) {
 const CONFIG = {
     // Timezone Configuration
     TIMEZONE: '+08:00', // Perth timezone (GMT+8)
+    
     // Supabase Configuration
     SUPABASE_URL: getEnv('SUPABASE_URL', 'https://wihegqwakwwvckxrivem.supabase.co'),
     SUPABASE_ANON_KEY: getEnv('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpaGVncXdha3d3dmNreHJpdmVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2Mzg1NDksImV4cCI6MjA1NjIxNDU0OX0.aP2ThYybxtUE6JaVHs1sowZaDfAbxxPC_yBotY5qApM'),
     SUPABASE_SERVICE_KEY: '', // Never expose service key in client-side code
-    // Google Maps API Configuration - Read from environment variable if available
-    MAPS_API_KEY: getEnv('MAPS_API_KEY', 'AIzaSyCzF7ukLxzRdcoEpBpr-YFV_4hroVUYXqE'), // Fallback to hardcoded value in development
+    
+    // Mapbox API Configuration
+    // Token is loaded from inline script in index.html (local dev) or environment variables (production)
+    MAPBOX_TOKEN: getEnv('MAPBOX_TOKEN', ''),
     
     // Date Format Configuration
     DEFAULT_DATE_FORMAT: 'YYYY-MM-DD',
@@ -32,6 +35,9 @@ const CONFIG = {
     // Map Configuration
     MAP_DEFAULT_CENTER: { lat: -31.9505, lng: 115.8605 }, // Perth, WA as default
     MAP_DEFAULT_ZOOM: 10,
+    
+    // Map Style Configuration
+    MAP_STYLE: 'mapbox://styles/mapbox/streets-v12', // Default style
     
     // Color Coding for Map Areas (Red to Blue spectrum)
     COLORS: {
