@@ -31,6 +31,9 @@ export async function onRequest(context) {
         callbackUrl: url.origin + '/api/auth/callback' // Assumes wrangler runs on root
     };
 
+    // Log the value right before the check, without logging the secret itself
+    console.log('Value of env.AUTH0_CLIENT_SECRET before check:', typeof env.AUTH0_CLIENT_SECRET, env.AUTH0_CLIENT_SECRET ? 'Exists and is truthy' : 'Does NOT exist or is falsy');
+
     // More specific check for missing variables
     const missingVars = [];
     if (!auth0Config.domain) missingVars.push('AUTH0_DOMAIN');
