@@ -460,10 +460,18 @@ class MapController {
 // Create a singleton instance
 const mapController = new MapController();
 
-// Initialize the map when document is ready
-function initMap() {
+// Initialize the map when document is ready - now async
+async function initMap() { // Make async
     try {
-        // Initialize the map first
+        // Wait for config from env-config.js
+        console.log("Waiting for config...");
+        const configReady = await window.ENV.configLoaded;
+        console.log("Config ready:", configReady);
+        if (!configReady) {
+            throw new Error("Client configuration failed to load.");
+        }
+
+        // Initialize the map first (it will now use window.ENV.MAPBOX_TOKEN)
         const mapInitialized = mapController.initMap();
         
         // Only load areas if the map was successfully initialized

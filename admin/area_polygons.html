@@ -9,20 +9,7 @@
     <link rel="stylesheet" href="/admin/css/admin.css">
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
 
-    <!-- Mapbox Token Configuration (FOR LOCAL DEVELOPMENT ONLY) -->
-    <script>
-        /*
-         * FOR LOCAL DEVELOPMENT ONLY
-         * Replace this with your Mapbox token for local testing
-         * In production, this will be overridden by environment variables
-         */
-        window.MAPBOX_TOKEN = 'pk.eyJ1IjoidHJlbnRpY2xlIiwiYSI6ImNtOTBuOXpzejBoNmgyaW9qNmtnbjN6aXgifQ.PdksWcpgaxxC-faGq59gPQ'; // Using the same fallback as index.html
-
-        // Apply the token to mapboxgl if available
-        if (typeof mapboxgl !== 'undefined') {
-            mapboxgl.accessToken = window.MAPBOX_TOKEN;
-        }
-    </script>
+    <!-- Mapbox token is now loaded via /js/env-config.js fetching /api/config -->
 
     <style>
         #map-container {
@@ -276,12 +263,21 @@
         let mapPolygons = [];
         let previewPolygon = null;
         let areaId = null;
-        
-        // Initialize Mapbox Map
-        function initMap() {
-            // Set access token from environment
-            mapboxgl.accessToken = window.ENV.MAPBOX_TOKEN || window.MAPBOX_TOKEN || '';
-            
+
+        // Initialize Mapbox Map - now async to wait for config
+        async function initMap() {
+            // Wait for config to load
+            const configReady = await window.ENV.configLoaded;
+            if (!configReady) {
+                 console.error("Map initialization skipped: Config failed to load.");
+                 // Display error to user?
+                 document.getElementById('map').innerHTML = `<div class="alert alert-danger m-3">Failed to load map configuration.</div>`;
+                 return;
+            }
+
+            // Set access token from environment (should be populated now)
+            mapboxgl.accessToken = window.ENV.MAPBOX_TOKEN || ''; // Removed fallback to window.MAPBOX_TOKEN
+
             if (!mapboxgl.accessToken) {
                 console.error('Mapbox token is missing');
                 document.getElementById('map').innerHTML = `

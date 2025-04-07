@@ -274,3 +274,9 @@ logs/*
 /Vergeside/wwwroot/maps/*
 /out/*
 /.wrangler/*
+
+# Environment variables
+.env
+.dev.vars
+/.dev.vars
+/.env
