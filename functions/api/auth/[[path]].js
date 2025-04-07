@@ -31,9 +31,18 @@ export async function onRequest(context) {
         callbackUrl: url.origin + '/api/auth/callback' // Assumes wrangler runs on root
     };
 
-    if (!auth0Config.domain || !auth0Config.clientId || !auth0Config.clientSecret) {
-        console.error("Missing Auth0 environment variables");
-        return new Response(JSON.stringify({ success: false, error: "Auth0 configuration missing" }), { status: 500 });
+    // More specific check for missing variables
+    const missingVars = [];
+    if (!auth0Config.domain) missingVars.push('AUTH0_DOMAIN');
+    if (!auth0Config.clientId) missingVars.push('AUTH0_CLIENT_ID');
+    if (!auth0Config.clientSecret) missingVars.push('AUTH0_CLIENT_SECRET'); // Check the secret specifically
+
+    if (missingVars.length > 0) {
+        const errorMsg = `Missing Auth0 environment variable(s): ${missingVars.join(', ')}`;
+        console.error(errorMsg);
+        // Also log the env object keys to see what *is* available in production
+        console.error("Available env keys in production:", Object.keys(env).join(', '));
+        return new Response(JSON.stringify({ success: false, error: "Auth0 server configuration error." }), { status: 500 });
     }
 
     // --- Routing ---
