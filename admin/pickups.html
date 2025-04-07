@@ -38,7 +38,7 @@
     </div>
 
     <div class="container">
-        <!-- Missing Pickups Info -->        
+        <!-- Missing Pickups Info -->
         <div class="card mb-4 d-none" id="missing-pickups-card">
             <div class="card-header bg-warning-subtle">
                 <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>Councils Missing Future Pickups</h5>
@@ -48,7 +48,7 @@
                 <div id="councils-missing-pickups" class="mt-2">Loading council data...</div>
             </div>
         </div>
-        
+
         <!-- Pickup Form -->
         <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -220,13 +220,13 @@
             const editCouncilSelect = document.getElementById('edit-council-id');
             const dateFilter = document.getElementById('date-filter');
             const filterBtn = document.getElementById('filter-btn');
-            
+
             // Modal elements
             const editPickupModal = new bootstrap.Modal(document.getElementById('edit-pickup-modal'));
             const confirmModal = new bootstrap.Modal(document.getElementById('confirm-modal'));
             const savePickupBtn = document.getElementById('save-pickup-btn');
             const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-            
+
             let deletePickupId = null;
             let areas = [];
             let councils = [];
@@ -259,10 +259,10 @@
                     areaSelect.innerHTML = '<option value="">Select Area</option>';
                 }
             });
-            
+
             // Load pickups
             loadPickups();
-            
+
             // Load councils from database
             async function loadCouncils() {
                 try {
@@ -276,12 +276,12 @@
                     if (!response.ok) {
                         throw new Error(result.error || 'Error loading councils');
                     }
-                    
+
                     councils = result.data;
-                    
+
                     // Populate council dropdown
                     councilSelect.innerHTML = '<option value="">Select Council</option>';
-                    
+
                     result.data.forEach(council => {
                         const option = document.createElement('option');
                         option.value = council.id;
@@ -293,7 +293,7 @@
                     showToast('Error loading councils: ' + error.message, 'danger');
                 }
             }
-            
+
             // Load areas for a specific council
             async function loadAreasForCouncil(councilId) {
                 try {
@@ -307,10 +307,10 @@
                     if (!response.ok) {
                         throw new Error(result.error || 'Error loading areas');
                     }
-                    
+
                     // Populate area dropdown
                     areaSelect.innerHTML = '<option value="">Select Area</option>';
-                    
+
                     result.data.forEach(area => {
                         const option = document.createElement('option');
                         option.value = area.id;
@@ -322,9 +322,10 @@
                     showToast('Error loading areas: ' + error.message, 'danger');
                 }
             }
-            
+
             // Check for councils with has_pickups=true but no future pickups
             async function checkCouncilsWithoutFuturePickups() {
+                console.log("checkCouncilsWithoutFuturePickups: Starting check..."); // Log Start
                 try {
                     const token = adminAuth.getAccessToken(); // Get token
                     if (!token) throw new Error('Not authenticated');
@@ -332,31 +333,44 @@
                         headers: { 'Authorization': `Bearer ${token}` } // Add header
                     });
                     if (!response.ok) {
-                        throw new Error('Error fetching future pickups');
+                        // Try to parse error, but don't fail the whole check if this fetch fails
+                        let errorMsg = 'Error fetching future pickups';
+                        try {
+                            const errRes = await response.json();
+                            errorMsg = errRes.error || errorMsg;
+                        } catch (parseErr) { /* ignore */ }
+                        console.warn(errorMsg); // Log as warning instead of error
+                        return; // Don't proceed if fetch failed
                     }
 
                     const pickupsResult = await response.json();
                     const futurePickups = pickupsResult.data || [];
-                    
+                    console.log("checkCouncilsWithoutFuturePickups: Councils array state:", councils); // Log Councils Array
+                    console.log("checkCouncilsWithoutFuturePickups: Future pickups fetched:", futurePickups); // Log Fetched Pickups
+
                     // Get councils with pickups enabled
                     const councilsWithPickupsEnabled = councils.filter(c => c.has_pickups);
-                    
+                    console.log("checkCouncilsWithoutFuturePickups: Councils with pickups enabled:", councilsWithPickupsEnabled); // Log Enabled Councils
+
                     // Find councils that have pickups enabled but no future pickups
                     const councilsMissingPickups = councilsWithPickupsEnabled.filter(council => {
-                        return !futurePickups.some(pickup => 
-                            pickup.area && 
-                            pickup.area.council && 
-                            pickup.area.council.id === council.id
+                        const councilIdToCheck = council.id; // Store council ID for clarity
+                        const hasFuturePickup = futurePickups.some(pickup =>
+                            pickup.area?.council?.id === councilIdToCheck // Use optional chaining for safety
                         );
+                        // Log the check result for each council
+                        console.log(`checkCouncilsWithoutFuturePickups: Checking Council ID ${councilIdToCheck} (${council.name}). Has future pickup? ${hasFuturePickup}`);
+                        return !hasFuturePickup;
                     });
-                    
+                    console.log("checkCouncilsWithoutFuturePickups: Final list of Councils missing future pickups:", councilsMissingPickups); // Log Missing Councils
+
                     const missingPickupsCard = document.getElementById('missing-pickups-card');
                     const councilsMissingPickupsEl = document.getElementById('councils-missing-pickups');
-                    
                     if (councilsMissingPickups.length > 0) {
+                        console.log("checkCouncilsWithoutFuturePickups: Showing missing pickups card."); // Log Show Card
                         // Show the card
                         missingPickupsCard.classList.remove('d-none');
-                        
+
                         // Create the list of missing councils
                         councilsMissingPickupsEl.innerHTML = councilsMissingPickups.map(council => {
                             let councilLink = '';
@@ -368,14 +382,16 @@
                             return councilLink;
                         }).join(' ');
                     } else {
+                        console.log("checkCouncilsWithoutFuturePickups: Hiding missing pickups card (none found)."); // Log Hide Card
                         // Hide the card
                         missingPickupsCard.classList.add('d-none');
                     }
                 } catch (error) {
                     console.error('Error checking councils without future pickups:', error);
+                    // Don't show toast for this check, just log
                 }
             }
-            
+
             // Load pickups from database
             async function loadPickups(dateFilterValue = 'all') {
                 showLoading();
@@ -390,7 +406,7 @@
                     if (!response.ok) {
                         throw new Error(result.error || 'Error loading pickups');
                     }
-                    
+
                     displayPickups(result.data);
                 } catch (error) {
                     console.error('Error loading pickups:', error);
@@ -399,22 +415,22 @@
                     hideLoading();
                 }
             }
-            
+
             // Display pickups in the table
             function displayPickups(data) {
                 // Display pickups in table
                 pickupsTable.innerHTML = '';
-                
-                if (data.length === 0) {
+
+                if (!data || data.length === 0) { // Added null check
                     noPickups.classList.remove('d-none');
                 } else {
                     noPickups.classList.add('d-none');
-                    
+
                     data.forEach(pickup => {
                         const row = document.createElement('tr');
-                        
+
                         const startDate = new Date(pickup.start_date).toLocaleDateString();
-                        
+
                         row.innerHTML = `
                             <td>${pickup.id}</td>
                             <td>${pickup.area && pickup.area.council ? pickup.area.council.name : 'Unknown'}</td>
@@ -431,7 +447,7 @@
                         `;
                         pickupsTable.appendChild(row);
                     });
-                    
+
                     // Add event listeners to buttons
                     document.querySelectorAll('.edit-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
@@ -439,7 +455,7 @@
                             openEditModal(id);
                         });
                     });
-                    
+
                     document.querySelectorAll('.delete-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             const id = e.target.getAttribute('data-id');
@@ -448,24 +464,24 @@
                     });
                 }
             }
-            
+
             // Add new pickup
             async function addPickup(e) {
                 e.preventDefault();
-                
+
                 const areaId = document.getElementById('area-id').value;
                 const startDate = document.getElementById('start-date').value;
-                
+
                 if (!areaId) {
                     showToast('Please select an area', 'warning');
                     return;
                 }
-                
+
                 if (!startDate) {
                     showToast('Pickup date is required', 'warning');
                     return;
                 }
-                
+
                 showLoading();
                 try {
                     const token = adminAuth.getAccessToken(); // Get token
@@ -482,18 +498,19 @@
                             start_date: startDate
                         })
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (!response.ok) {
                         console.error('API error response:', result);
                         throw new Error(result.error || 'Error adding pickup');
                     }
-                    
+
                     showToast('Pickup added successfully', 'success');
                     pickupForm.reset();
                     areaSelect.innerHTML = '<option value="">Select Area</option>';
                     loadPickups();
+                    await checkCouncilsWithoutFuturePickups(); // Re-check after adding
                 } catch (error) {
                     console.error('Error adding pickup:', error);
                     showToast('Error adding pickup: ' + error.message, 'danger');
@@ -501,7 +518,7 @@
                     hideLoading();
                 }
             }
-            
+
             // Open edit modal with pickup data
             async function openEditModal(id) {
                 showLoading();
@@ -517,17 +534,17 @@
                     if (!response.ok) {
                         throw new Error(result.error || 'Error fetching pickup data');
                     }
-                    
+
                     // Find the pickup in the data
                     const pickup = result.data.find(p => p.id === parseInt(id));
-                    
+
                     if (!pickup) {
                         throw new Error('Pickup not found');
                     }
-                    
+
                     // Fill in the edit form with data
                     document.getElementById('edit-id').value = pickup.id;
-                    
+
                     // First set council dropdown
                     if (pickup.area && pickup.area.council) {
                         // Add council to dropdown if not already there
@@ -538,7 +555,7 @@
                         editCouncilSelect.appendChild(option);
                         editCouncilSelect.value = pickup.area.council.id;
                     }
-                    
+
                     // Then set area dropdown
                     if (pickup.area) {
                         // Add area to dropdown if not already there
@@ -549,10 +566,10 @@
                         editAreaSelect.appendChild(option);
                         editAreaSelect.value = pickup.area.id;
                     }
-                    
+
                     // Set pickup date
                     document.getElementById('edit-start-date').value = pickup.start_date;
-                    
+
                     editPickupModal.show();
                 } catch (error) {
                     console.error('Error opening edit modal:', error);
@@ -561,17 +578,17 @@
                     hideLoading();
                 }
             }
-            
+
             // Save pickup edits
             async function savePickupChanges() {
                 const id = document.getElementById('edit-id').value;
                 const startDate = document.getElementById('edit-start-date').value;
-                
+
                 if (!startDate) {
                     showToast('Pickup date is required', 'warning');
                     return;
                 }
-                
+
                 showLoading();
                 editPickupModal.hide();
                 try {
@@ -588,15 +605,16 @@
                             start_date: startDate
                         })
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (!response.ok) {
                         throw new Error(result.error || 'Error updating pickup');
                     }
-                    
+
                     showToast('Pickup updated successfully', 'success');
                     loadPickups(dateFilter.value);
+                    await checkCouncilsWithoutFuturePickups(); // Re-check after updating
                 } catch (error) {
                     console.error('Error updating pickup:', error);
                     showToast('Error updating pickup: ' + error.message, 'danger');
@@ -604,17 +622,17 @@
                     hideLoading();
                 }
             }
-            
+
             // Open delete confirmation modal
             function openDeleteConfirmation(id) {
                 deletePickupId = id;
                 confirmModal.show();
             }
-            
+
             // Delete pickup
             async function deletePickup() {
                 if (!deletePickupId) return;
-                
+
                 showLoading();
                 confirmModal.hide();
                 try {
@@ -630,10 +648,11 @@
                         const result = await response.json();
                         throw new Error(result.error || 'Error deleting pickup');
                     }
-                    
+
                     showToast('Pickup deleted successfully', 'success');
                     deletePickupId = null;
                     loadPickups(dateFilter.value);
+                    await checkCouncilsWithoutFuturePickups(); // Re-check after deleting
                 } catch (error) {
                     console.error('Error deleting pickup:', error);
                     showToast('Error deleting pickup: ' + error.message, 'danger');
@@ -641,7 +660,7 @@
                     hideLoading();
                 }
             }
-            
+
             // Toggle form visibility
             function toggleFormVisibility() {
                 if (pickupFormContainer.style.display === 'none') {
@@ -652,23 +671,23 @@
                     toggleFormBtn.textContent = 'Show Form';
                 }
             }
-            
+
             // Filter pickups by date
             function filterPickupsByDate() {
                 const selectedDateFilter = dateFilter.value;
                 loadPickups(selectedDateFilter);
             }
-            
+
             // Show loading overlay
             function showLoading() {
                 loadingElement.classList.remove('d-none');
             }
-            
+
             // Hide loading overlay
             function hideLoading() {
                 loadingElement.classList.add('d-none');
             }
-            
+
             // Show toast notification
             function showToast(message, type = 'info') {
                 const toastContainer = document.getElementById('toast-container');
@@ -677,7 +696,7 @@
                 toast.setAttribute('role', 'alert');
                 toast.setAttribute('aria-live', 'assertive');
                 toast.setAttribute('aria-atomic', 'true');
-                
+
                 toast.innerHTML = `
                     <div class="d-flex">
                         <div class="toast-body">
@@ -686,27 +705,27 @@
                         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
                 `;
-                
+
                 toastContainer.appendChild(toast);
-                
+
                 const bsToast = new bootstrap.Toast(toast, {
                     autohide: true,
                     delay: 3000
                 });
-                
+
                 bsToast.show();
-                
+
                 // Remove toast after it's hidden
                 toast.addEventListener('hidden.bs.toast', () => {
                     toast.remove();
                 });
             }
-            
+
             // Event listeners
             logoutBtn.addEventListener('click', async () => {
                 await adminAuth.signOut();
             });
-            
+
             pickupForm.addEventListener('submit', addPickup);
             savePickupBtn.addEventListener('click', savePickupChanges);
             confirmDeleteBtn.addEventListener('click', deletePickup);
@@ -716,3 +735,46 @@
     </script>
 </body>
 </html>
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+<environment_details>
+# VSCode Visible Files
+admin/pickups.html
+
+# VSCode Open Tabs
+about.html
+contact.html
+.env
+admin/index.html
+.dev.vars
+admin/councils.html
+js/mapbox-controller.js
+functions/api/auth/[[path]].js
+package.json
+admin/areas.html
+admin/pickups.html
+.gitignore
+functions/api/config.js
+js/env-config.js
+index.html
+admin/area_polygons.html
+functions/api/admin/[[path]].js
+admin/js/admin-auth.js
+js/config.js
+api/admin/area_polygon.js
+api/admin/area_polygon_routes.js
+api/admin/index.js
+server.js
+../vergeside/Vergeside/Controllers/ContactController.cs
+council.html
+donate.html
+faq.html
+
+# Current Time
+4/7/2025, 10:51:11 AM (Australia/Perth, UTC+8:00)
+
+# Current Mode
+ACT MODE
+</environment_details>

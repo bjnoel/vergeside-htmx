@@ -379,10 +379,12 @@
                         const result = await response.json();
                         throw new Error(result.error || 'Error loading area details');
                     }
-                    
+
                     const result = await response.json();
+                    console.log("loadAreaDetails - API Response:", result); // Log the full response
                     const area = result.data;
-                    
+                    console.log("loadAreaDetails - Area data:", area); // Log the extracted area data
+
                     // Display area details
                     areaIdElement.textContent = area.id;
                     areaNameElement.textContent = area.name;

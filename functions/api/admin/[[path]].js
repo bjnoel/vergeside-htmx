@@ -168,11 +168,28 @@ export async function onRequest(context) {
         else if (resource === 'area') {
             // TODO: Migrate logic from api/admin/area.js
              if (method === 'GET') {
-                let query = adminSupabase.from('area').select('*, council:council_id (id, name)').order('name');
+                let query = adminSupabase.from('area').select('*, council:council_id (id, name)');
+
+                // Filter by council if requested (for list view)
                 const councilId = url.searchParams.get('council_id');
-                if (councilId) query = query.eq('council_id', councilId);
+                if (councilId) {
+                    query = query.eq('council_id', councilId).order('name');
+                }
+                // Filter by specific ID if present (for detail view)
+                else if (id) {
+                     query = query.eq('id', id).maybeSingle(); // Use maybeSingle() for single record
+                }
+                 // Default order if fetching all
+                 else {
+                     query = query.order('name');
+                 }
+
                 const { data, error } = await query;
                 if (error) throw error;
+                // Handle case where single record is requested but not found
+                if (id && !data) {
+                     return new Response(JSON.stringify({ success: false, error: 'Area not found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+                }
                 return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
             }
              // TODO: Add POST/PUT/DELETE if needed
@@ -219,7 +236,21 @@ export async function onRequest(context) {
              // TODO: Migrate logic from server.js
              if (method === 'GET') {
                  let query = adminSupabase.from('area_pickup').select('*, area:area_id (id, name, council:council_id (id, name))').order('start_date', { ascending: false });
-                 // TODO: Add filtering logic from server.js if needed
+
+                 // Implement filtering logic based on query parameter
+                 const filter = url.searchParams.get('filter') || 'all';
+                 const today = new Date().toISOString().split('T')[0];
+                 const currentMonth = today.substring(0, 7); // YYYY-MM
+
+                 if (filter === 'future') {
+                     query = query.gte('start_date', today);
+                 } else if (filter === 'past') {
+                     query = query.lt('start_date', today);
+                 } else if (filter === 'current') {
+                     query = query.like('start_date', `${currentMonth}%`);
+                 }
+                 // 'all' filter needs no additional date filtering
+
                  const { data, error } = await query;
                  if (error) throw error;
                  return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });

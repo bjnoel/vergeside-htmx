@@ -240,8 +240,9 @@
                     }
                     
                     const result = await response.json();
+                    console.log("loadCouncils: Fetch successful, result:", result); // Log 1
                     const data = result.data || [];
-                    
+
                     // Filter by search term if provided
                     let filteredData = data;
                     if (searchTerm) {
@@ -249,16 +250,16 @@
                             council.name.toLowerCase().includes(searchTerm.toLowerCase())
                         );
                     }
-                    
+                    console.log("loadCouncils: Starting data processing loop..."); // Log 2
                     // Display councils in table
                     councilsTable.innerHTML = '';
-                    
+
                     if (filteredData.length === 0) {
                         noCouncils.classList.remove('d-none');
                     } else {
                         noCouncils.classList.add('d-none');
-                        
-                        filteredData.forEach(council => {
+                        filteredData.forEach((council, index) => {
+                            console.log(`loadCouncils: Processing council ${index + 1}:`, council); // Log 3 (inside loop)
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${council.id}</td>
@@ -295,15 +296,14 @@
                                 openEditModal(id); // No token needed for opening modal itself
                             });
                         });
-                        // Add delete listener if needed (assuming delete button exists)
                         // document.querySelectorAll('.delete-btn').forEach(btn => { ... });
                     }
-
-                    // hideLoading(); // Moved to finally block
+                    console.log("loadCouncils: Finished processing loop and adding listeners."); // Log 4
+                    hideLoading(); // Explicitly hide loading on success path
                 } catch (error) {
-                    console.error('Error loading councils:', error);
+                    console.error('Error loading councils:', error); // This is Log 5 (Error path)
                     showToast('Error loading councils: ' + error.message, 'danger');
-                    hideLoading();
+                    // hideLoading(); // Moved to finally
                 }
             }
             
@@ -357,10 +357,10 @@
                     console.error('Error adding council:', error);
                     showToast('Error adding council: ' + error.message, 'danger');
                 } finally {
-                    hideLoading();
+                     hideLoading(); // Ensure loading is hidden regardless of outcome
                 }
             }
-            
+
             // Open edit modal with council data
             async function openEditModal(id) {
                 showLoading();
