@@ -50,7 +50,9 @@ class MapController {
         this.endDate = null;
         this.loadingDiv = null;
         this.debugMode = false;
-        this.mapboxToken = getMapConfig('MAPBOX_TOKEN', '');
+        // Remove token reading from constructor, it will be read in initMap
+        // this.mapboxToken = getMapConfig('MAPBOX_TOKEN', '');
+        this.mapboxToken = null;
     }
 
     // Debug log
@@ -66,13 +68,13 @@ class MapController {
 
     // Initialize the Mapbox map
     // Returns true if successful, false otherwise
-    initMap() {
+    initMap() { // This is the method called by the global initMap
         try {
-            // Get token from global variable, config, or environment
-            this.mapboxToken = window.MAPBOX_TOKEN || getMapConfig('MAPBOX_TOKEN', '');
-            
+            // Get token directly from ENV now that config is loaded
+            this.mapboxToken = window.ENV?.MAPBOX_TOKEN || ''; // Use optional chaining
+
             // Debug token to ensure it's loaded
-            console.log('MapController: Token available:', !!this.mapboxToken);
+            console.log('MapController.initMap: Token available:', !!this.mapboxToken);
             
             // Check if the token is missing or is a placeholder
             if (!this.mapboxToken || 
@@ -458,10 +460,12 @@ class MapController {
 }
 
 // Create a singleton instance
-const mapController = new MapController();
+// Create a singleton instance - REMOVED, will instantiate after config load
+// const mapController = new MapController();
 
 // Initialize the map when document is ready - now async
-async function initMap() { // Make async
+async function initMap() {
+    let mapController; // Declare here
     try {
         // Wait for config from env-config.js
         console.log("Waiting for config...");
@@ -471,12 +475,15 @@ async function initMap() { // Make async
             throw new Error("Client configuration failed to load.");
         }
 
-        // Initialize the map first (it will now use window.ENV.MAPBOX_TOKEN)
+        // Instantiate the controller AFTER config is loaded
+        mapController = new MapController();
+
+        // Initialize the map (it will read token from window.ENV inside)
         const mapInitialized = mapController.initMap();
-        
+
         // Only load areas if the map was successfully initialized
         if (mapInitialized && mapController.map) {
-            mapController.loadAreas();
+           await mapController.loadAreas(); // Make sure to await this if needed elsewhere
         } else {
             console.log('Map not initialized, skipping loadAreas');
         }
