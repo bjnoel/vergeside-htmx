@@ -43,13 +43,15 @@ export async function onRequest(context) {
             const redirectUrl = `https://${auth0Config.domain}/authorize?` +
                 `response_type=code&` +
                 `client_id=${auth0Config.clientId}&` +
+                `audience=${env.AUTH0_AUDIENCE}&` + // Add audience parameter
                 `redirect_uri=${auth0Config.callbackUrl}&` +
-                `scope=openid profile email`;
+                `scope=openid profile email`; // Add any necessary API scopes here later if needed
 
             console.log(`Redirecting to Auth0: ${redirectUrl}`);
             return Response.redirect(redirectUrl, 302);
 
         } else if (action === 'callback') {
+            console.log('--- Auth0 Callback Function START ---'); // Add this log
             console.log('Auth0 callback function accessed');
             const code = url.searchParams.get('code');
 
@@ -138,12 +140,16 @@ export async function onRequest(context) {
             };
 
             const headers = new Headers();
+            // Log the received tokens for debugging
+            console.log("Tokens received from Auth0:", tokens);
+
             headers.append('Set-Cookie', `admin_email=${userEmail}; ${cookieOptions.httpOnly ? 'HttpOnly; ' : ''}Max-Age=${cookieOptions.maxAge}; Path=${cookieOptions.path}; ${cookieOptions.secure ? 'Secure; ' : ''}SameSite=${cookieOptions.sameSite}`);
             headers.append('Set-Cookie', `admin_auth=${encodeURIComponent(JSON.stringify({
                 email: userEmail,
                 name: userInfo.name || '',
                 picture: userInfo.picture || '',
-                access_token: tokens.access_token, // Store the access token
+                access_token: tokens.access_token, // Explicitly use access_token here
+                // id_token: tokens.id_token, // We could store id_token too if needed, but access_token is for APIs
                 authenticated: true,
                 timestamp: new Date().toISOString()
             }))}; Max-Age=${cookieOptions.maxAge}; Path=${cookieOptions.path}; ${cookieOptions.secure ? 'Secure; ' : ''}SameSite=${cookieOptions.sameSite}`); // Note: HttpOnly removed for client access

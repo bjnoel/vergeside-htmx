@@ -267,6 +267,7 @@
             async function loadDashboardData() {
                 try {
                     const token = adminAuth.getAccessToken();
+                    console.log("Frontend: Token being sent:", token); // Log token before sending
                     if (!token) throw new Error('Not authenticated');
 
                     const headers = { 'Authorization': `Bearer ${token}` };

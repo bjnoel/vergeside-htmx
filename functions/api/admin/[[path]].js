@@ -1,44 +1,108 @@
 import { createClient } from '@supabase/supabase-js';
-// TODO: Import necessary Auth0 validation libraries (e.g., jose or auth0 SDK)
+import * as jose from 'jose'; // Import jose
 
 // --- Reusable Auth0 JWT Validation ---
 // Needs AUTH0_DOMAIN and AUTH0_AUDIENCE from environment variables
-async function validateAuth0Token(request) {
+async function validateAuth0Token(request, env) { // Added env parameter
     const authorizationHeader = request.headers.get('Authorization');
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
         return { valid: false, error: 'Missing or invalid Authorization header', status: 401 };
     }
     const token = authorizationHeader.substring(7); // Remove 'Bearer ' prefix
+    console.log("Backend: Received token string:", token); // Log raw token string
 
-    // --- Placeholder for actual JWT validation ---
-    // Use jose, auth0 SDK, or similar to verify the token against Auth0 JWKS endpoint
-    // Example using a hypothetical library:
-    /*
+    const auth0Domain = env.AUTH0_DOMAIN;
+    const auth0Audience = env.AUTH0_AUDIENCE;
+
+    if (!auth0Domain || !auth0Audience) {
+        console.error("Auth0 domain or audience missing from environment variables.");
+        return { valid: false, error: 'Server configuration error for Auth0', status: 500 };
+    }
+
+    // --- Conditional Validation ---
+    // Bypass JWT validation locally for easier testing due to CryptoKey issues with Wrangler/jose
+    if (env.NODE_ENV !== 'production') {
+        console.warn("Auth0 token validation is BYPASSED for local development!");
+        if (token) { // Basic check if token exists
+            return { valid: true, payload: { sub: 'temp-local-user', email: 'local@example.com' } }; // Dummy payload
+        } else {
+            return { valid: false, error: 'Missing token (validation bypassed)', status: 401 };
+        }
+    }
+    // --- End Local Bypass ---
+
+    // --- Production JWT Validation ---
+    console.log("Attempting production JWT validation...");
+    const JWKS = jose.createRemoteJWKSet(new URL(`https://${auth0Domain}/.well-known/jwks.json`)); // Use standard remote set for production
+
+    // --- Manual JWKS Fetch and Key Import --- // Keep reverted code commented out
+    // let jwk; // Declare jwk outside the try block // Reverted
+    /* // Reverted manual fetch logic
     try {
-        const { payload } = await jwtVerify(token, getJwksUri(process.env.AUTH0_DOMAIN), {
-            issuer: `https://${process.env.AUTH0_DOMAIN}/`,
-            audience: process.env.AUTH0_AUDIENCE,
-            algorithms: ['RS256']
+        // 1. Fetch the JWKS
+        const jwksUrl = new URL(`https://${auth0Domain}/.well-known/jwks.json`);
+        const response = await fetch(jwksUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch JWKS: ${response.statusText}`);
+        }
+        const jwks = await response.json();
+
+        // 2. Decode the token header to find the Key ID (kid)
+        const protectedHeader = jose.decodeProtectedHeader(token);
+        const kid = protectedHeader?.kid;
+        if (!kid) {
+            throw new Error("Token header missing 'kid'");
+        }
+
+        // 3. Find the matching key in the JWKS and assign to outer variable
+        jwk = jwks.keys?.find(k => k.kid === kid); // Assign to outer jwk
+        if (!jwk) {
+            throw new Error(`No matching key found in JWKS for kid: ${kid}`);
+        }
+
+        // 4. We have the matching JWK object (jwk), don't import it here
+        // key = await jose.importJWK(jwk, protectedHeader.alg); // Removed import step
+        // console.log('JWK found:', jwk); // Optional: log the found JWK
+
+    } catch (fetchError) {
+         console.error("Error fetching JWK:", fetchError);
+         return { valid: false, error: `Failed to retrieve signing key: ${fetchError.message}`, status: 500 };
+    }
+    */ // Reverted manual fetch logic
+    // --- End Manual JWKS Fetch ---
+
+    // Ensure jwk was found before proceeding // Reverted
+    // if (!jwk) {
+    //      return { valid: false, error: 'Failed to find appropriate signing key.', status: 500 };
+    // }
+
+    try {
+        // 5. Verify the token using the remote JWKS
+        const { payload } = await jose.jwtVerify(token, JWKS, { // Use JWKS again
+            issuer: `https://${auth0Domain}/`,
+            audience: auth0Audience,
+            algorithms: ['RS256'] // Auth0 typically uses RS256
         });
-        // Optional: Check if user email from payload exists in Supabase admin_users table
-        // const userEmail = payload.email; // Adjust based on actual payload structure
-        // const isAdmin = await checkAdminSupabase(userEmail, context.env);
-        // if (!isAdmin) return { valid: false, error: 'User not authorized as admin', status: 403 };
+
+        // Token is valid
+        console.log('Auth0 token validated successfully for sub:', payload.sub);
+        // You can optionally add further checks here, e.g., check against admin_users table if needed,
+        // although the presence of a valid token for the correct audience might be sufficient authorization.
+        // const userEmail = payload.email; // Adjust based on actual payload structure if needed
 
         return { valid: true, payload };
     } catch (err) {
-        console.error("Auth0 validation error:", err);
-        return { valid: false, error: `Token validation failed: ${err.message}`, status: 401 };
-    }
-    */
-    // --- End Placeholder ---
-
-    // TEMPORARY: Allow access for now until validation is implemented
-    console.warn("Auth0 token validation is currently bypassed!");
-    if (token) { // Basic check if token exists
-         return { valid: true, payload: { sub: 'temp-user', email: 'temp@example.com' } }; // Dummy payload
-    } else {
-         return { valid: false, error: 'Missing token (validation bypassed)', status: 401 };
+        console.error("Auth0 validation error:", err.message);
+        // Provide more specific error messages based on jose error codes if desired
+        if (err.code === 'ERR_JWT_EXPIRED') {
+             return { valid: false, error: 'Token expired', status: 401 };
+        } else if (err.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED' || err.code === 'ERR_JWKS_NO_MATCHING_KEY') {
+             return { valid: false, error: 'Invalid token signature', status: 401 };
+        } else if (err.code === 'ERR_JWT_CLAIM_VALIDATION_FAILED') {
+             return { valid: false, error: `Token claim validation failed: ${err.message}`, status: 401 };
+        }
+        // Log the specific error code for debugging unknown errors
+        return { valid: false, error: `Token validation failed: ${err.message} (Code: ${err.code})`, status: 401 };
     }
 }
 
@@ -64,7 +128,7 @@ export async function onRequest(context) {
     const pathSegments = params.path || []; // [[path]] gives an array of segments
 
     // --- Authentication Check ---
-    const authResult = await validateAuth0Token(request);
+    const authResult = await validateAuth0Token(request, env); // Pass env
     if (!authResult.valid) {
         return new Response(JSON.stringify({ success: false, error: authResult.error }), {
             status: authResult.status,
