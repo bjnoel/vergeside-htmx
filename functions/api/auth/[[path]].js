@@ -26,19 +26,19 @@ export async function onRequest(context) {
     const auth0Config = {
         domain: env.AUTH0_DOMAIN,
         clientId: env.AUTH0_CLIENT_ID,
-        clientSecret: env.AUTH0_CLIENT_SECRET,
+        clientSecret: env.AUTH0_SECRET_KEY, // Use the new variable name
         // Determine callback URL based on environment (dev vs prod)
         callbackUrl: url.origin + '/api/auth/callback' // Assumes wrangler runs on root
     };
 
     // Log the value right before the check, without logging the secret itself
-    console.log('Value of env.AUTH0_CLIENT_SECRET before check:', typeof env.AUTH0_CLIENT_SECRET, env.AUTH0_CLIENT_SECRET ? 'Exists and is truthy' : 'Does NOT exist or is falsy');
+    console.log('Value of env.AUTH0_SECRET_KEY before check:', typeof env.AUTH0_SECRET_KEY, env.AUTH0_SECRET_KEY ? 'Exists and is truthy' : 'Does NOT exist or is falsy'); // Use new name
 
     // More specific check for missing variables
     const missingVars = [];
     if (!auth0Config.domain) missingVars.push('AUTH0_DOMAIN');
     if (!auth0Config.clientId) missingVars.push('AUTH0_CLIENT_ID');
-    if (!auth0Config.clientSecret) missingVars.push('AUTH0_CLIENT_SECRET'); // Check the secret specifically
+    if (!auth0Config.clientSecret) missingVars.push('AUTH0_SECRET_KEY'); // Check the new secret name
 
     if (missingVars.length > 0) {
         const errorMsg = `Missing Auth0 environment variable(s): ${missingVars.join(', ')}`;
