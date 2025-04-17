@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="https://www.vergeside.com.au/admin/maintenance">
+    <title>System Maintenance - Vergeside Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/admin/css/admin.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Login Container (will be shown if not authenticated) -->
+    <div id="login-container" class="login-container d-none">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Vergeside Admin</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="/images/favicon-32x32.png" alt="Vergeside Logo" class="mb-3">
+                    <h5>Admin Dashboard Login</h5>
+                    <p class="text-muted">Please sign in with your admin account</p>
+                </div>
+                
+                <div class="alert alert-info">
+                    <small>Only authorized administrators can access this area. Please use your Auth0 account.</small>
+                </div>
+                
+                <div id="login-message" class="alert alert-danger d-none"></div>
+                
+                <div class="d-grid gap-2">
+                    <a href="/api/auth/login" class="btn btn-primary">
+                        Sign In
+                    </a>
+                    <a href="/" class="btn btn-outline-secondary">
+                        Back to Website
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard (will be shown if authenticated) -->
+    <div id="admin-dashboard" class="d-none">
+        <div class="admin-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="m-0">System Maintenance</h2>
+                    <div>
+                        <span id="user-email" class="me-3"></span>
+                        <a href="/admin/" class="btn btn-outline-primary btn-sm me-2">Dashboard</a>
+                        <button id="logout-btn" class="btn btn-outline-secondary btn-sm">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="alert alert-warning">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Caution</h5>
+                        <p>This page contains system maintenance functions that can affect the operation of the website. Use with care.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">KML Cache Management</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>The KML cache stores generated map data to improve performance. You can recreate or clear the cache here.</p>
+                            
+                            <div id="kml-cache-status" class="alert alert-secondary">
+                                Checking KML cache status...
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button id="recreate-kml-cache" class="btn btn-primary">
+                                    Recreate KML Cache Table
+                                </button>
+                                <button id="clear-kml-cache" class="btn btn-warning">
+                                    Clear KML Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">System Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="system-info">
+                                <div class="mb-3">
+                                    <strong>Database Status:</strong>
+                                    <span id="database-status" class="badge bg-secondary">Checking...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>API Status:</strong>
+                                    <span id="api-status" class="badge bg-secondary">Checking...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Auth Status:</strong>
+                                    <span id="auth-status" class="badge bg-secondary">Checking...</span>
+                                </div>
+                                <div class="mb-3">
+                                    <strong>Last Cache Reset:</strong>
+                                    <span id="last-cache-reset">Unknown</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">Advanced Maintenance</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>These actions should only be performed during scheduled maintenance windows as they may temporarily affect the website functionality.</p>
+                            
+                            <div class="d-grid gap-2">
+                                <button id="rebuild-indexes" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmModal" data-action="rebuild-indexes">
+                                    Rebuild Database Indexes
+                                </button>
+                                <button id="purge-expired-data" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmModal" data-action="purge-expired-data">
+                                    Purge Expired Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirm Action</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to perform this action? This operation cannot be undone.</p>
+                    <div id="modal-details" class="alert alert-warning">
+                        <strong>Action details will appear here</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-action">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.6/dist/umd/supabase.min.js"></script>
+    <script src="/js/env-config.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/admin/js/admin-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // UI Elements
+            const loadingElement = document.getElementById('loading');
+            const loginContainer = document.getElementById('login-container');
+            const adminDashboard = document.getElementById('admin-dashboard');
+            const userEmail = document.getElementById('user-email');
+            const logoutBtn = document.getElementById('logout-btn');
+            const kmlCacheStatus = document.getElementById('kml-cache-status');
+            const recreateKmlCacheBtn = document.getElementById('recreate-kml-cache');
+            const clearKmlCacheBtn = document.getElementById('clear-kml-cache');
+            const databaseStatus = document.getElementById('database-status');
+            const apiStatus = document.getElementById('api-status');
+            const authStatus = document.getElementById('auth-status');
+            const lastCacheReset = document.getElementById('last-cache-reset');
+            const confirmActionBtn = document.getElementById('confirm-action');
+            const modalDetails = document.getElementById('modal-details');
+            
+            // Current action for the confirmation modal
+            let currentAction = '';
+            
+            // Initial check using adminAuth state
+            if (adminAuth.isAdmin()) {
+                showDashboard(adminAuth.getUser());
+            } else {
+                showLogin();
+            }
+            loadingElement.classList.add('d-none');
+            
+            // Show login screen
+            function showLogin() {
+                loginContainer.classList.remove('d-none');
+                adminDashboard.classList.add('d-none');
+            }
+            
+            // Show dashboard
+            function showDashboard(userData) {
+                loginContainer.classList.add('d-none');
+                adminDashboard.classList.remove('d-none');
+                
+                if (userData && userData.email) {
+                    userEmail.textContent = userData.email;
+                }
+                
+                // Load system status
+                loadKmlCacheStatus();
+                loadSystemStatus();
+            }
+            
+            // Load KML cache status
+            async function loadKmlCacheStatus() {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+                    
+                    const response = await fetch('/api/admin/kml-cache/status', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.available) {
+                        kmlCacheStatus.className = 'alert alert-success';
+                        kmlCacheStatus.innerHTML = `
+                            <strong>KML Cache Available</strong><br>
+                            Total Entries: ${data.count || 0}<br>
+                            Last Entry: ${data.lastEntry ? new Date(data.lastEntry).toLocaleString() : 'None'}
+                        `;
+                    } else {
+                        kmlCacheStatus.className = 'alert alert-warning';
+                        kmlCacheStatus.innerHTML = `
+                            <strong>KML Cache Not Available</strong><br>
+                            ${data.error || 'The KML cache table may not exist or is not accessible.'}
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading KML cache status:', error);
+                    kmlCacheStatus.className = 'alert alert-danger';
+                    kmlCacheStatus.textContent = 'Error checking KML cache status';
+                }
+            }
+            
+            // Load system status
+            async function loadSystemStatus() {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+                    
+                    // Check database status
+                    try {
+                        const dbResponse = await fetch('/api/admin/system/database-status', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (dbResponse.ok) {
+                            databaseStatus.className = 'badge bg-success';
+                            databaseStatus.textContent = 'Connected';
+                        } else {
+                            databaseStatus.className = 'badge bg-danger';
+                            databaseStatus.textContent = 'Error';
+                        }
+                    } catch (e) {
+                        databaseStatus.className = 'badge bg-danger';
+                        databaseStatus.textContent = 'Error';
+                    }
+                    
+                    // Check API status
+                    try {
+                        const apiResponse = await fetch('/api/health', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (apiResponse.ok) {
+                            apiStatus.className = 'badge bg-success';
+                            apiStatus.textContent = 'Available';
+                        } else {
+                            apiStatus.className = 'badge bg-danger';
+                            apiStatus.textContent = 'Error';
+                        }
+                    } catch (e) {
+                        apiStatus.className = 'badge bg-danger';
+                        apiStatus.textContent = 'Error';
+                    }
+                    
+                    // Check auth status
+                    if (adminAuth.isAdmin()) {
+                        authStatus.className = 'badge bg-success';
+                        authStatus.textContent = 'Authenticated';
+                    } else {
+                        authStatus.className = 'badge bg-danger';
+                        authStatus.textContent = 'Not Authenticated';
+                    }
+                    
+                    // Get last cache reset time
+                    try {
+                        const cacheResponse = await fetch('/api/admin/kml-cache/last-reset', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (cacheResponse.ok) {
+                            const cacheData = await cacheResponse.json();
+                            if (cacheData.lastReset) {
+                                lastCacheReset.textContent = new Date(cacheData.lastReset).toLocaleString();
+                            } else {
+                                lastCacheReset.textContent = 'Never';
+                            }
+                        } else {
+                            lastCacheReset.textContent = 'Unknown';
+                        }
+                    } catch (e) {
+                        lastCacheReset.textContent = 'Unknown';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading system status:', error);
+                    showToast('Error loading system status', 'danger');
+                }
+            }
+            
+            // Recreate KML cache table
+            recreateKmlCacheBtn.addEventListener('click', async () => {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+                    
+                    // Show loading state
+                    recreateKmlCacheBtn.disabled = true;
+                    recreateKmlCacheBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    
+                    const response = await fetch('/api/admin/kml-cache/recreate', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showToast('KML cache table recreated successfully', 'success');
+                        // Reload KML cache status
+                        loadKmlCacheStatus();
+                    } else {
+                        throw new Error(data.error || 'Failed to recreate KML cache table');
+                    }
+                } catch (error) {
+                    console.error('Error recreating KML cache table:', error);
+                    showToast(error.message || 'Error recreating KML cache table', 'danger');
+                } finally {
+                    // Reset button state
+                    recreateKmlCacheBtn.disabled = false;
+                    recreateKmlCacheBtn.textContent = 'Recreate KML Cache Table';
+                }
+            });
+            
+            // Clear KML cache
+            clearKmlCacheBtn.addEventListener('click', async () => {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+                    
+                    // Show loading state
+                    clearKmlCacheBtn.disabled = true;
+                    clearKmlCacheBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    
+                    const response = await fetch('/api/admin/kml-cache/clear', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showToast('KML cache cleared successfully', 'success');
+                        // Reload KML cache status
+                        loadKmlCacheStatus();
+                    } else {
+                        throw new Error(data.error || 'Failed to clear KML cache');
+                    }
+                } catch (error) {
+                    console.error('Error clearing KML cache:', error);
+                    showToast(error.message || 'Error clearing KML cache', 'danger');
+                } finally {
+                    // Reset button state
+                    clearKmlCacheBtn.disabled = false;
+                    clearKmlCacheBtn.textContent = 'Clear KML Cache';
+                }
+            });
+            
+            // Set up modal for confirmations
+            $('#confirmModal').on('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const action = button.getAttribute('data-action');
+                currentAction = action;
+                
+                // Set modal content based on action
+                if (action === 'rebuild-indexes') {
+                    modalDetails.innerHTML = `
+                        <strong>Rebuild Database Indexes</strong>
+                        <p>This will rebuild all database indexes, which may temporarily slow down database operations.</p>
+                        <p>This operation should be performed during low traffic hours.</p>
+                    `;
+                } else if (action === 'purge-expired-data') {
+                    modalDetails.innerHTML = `
+                        <strong>Purge Expired Data</strong>
+                        <p>This will permanently delete all expired data (pickups older than 1 year).</p>
+                        <p>This operation cannot be undone.</p>
+                    `;
+                }
+            });
+            
+            // Handle confirm action
+            confirmActionBtn.addEventListener('click', async () => {
+                if (!currentAction) return;
+                
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+                    
+                    // Show loading state
+                    confirmActionBtn.disabled = true;
+                    confirmActionBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                    
+                    let url = '';
+                    if (currentAction === 'rebuild-indexes') {
+                        url = '/api/admin/system/rebuild-indexes';
+                    } else if (currentAction === 'purge-expired-data') {
+                        url = '/api/admin/system/purge-expired-data';
+                    }
+                    
+                    if (!url) throw new Error('Invalid action');
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showToast(`Action "${currentAction}" completed successfully`, 'success');
+                        // Hide modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+                        modal.hide();
+                    } else {
+                        throw new Error(data.error || `Failed to execute action "${currentAction}"`);
+                    }
+                } catch (error) {
+                    console.error(`Error executing action "${currentAction}":`, error);
+                    showToast(error.message || `Error executing action "${currentAction}"`, 'danger');
+                } finally {
+                    // Reset button state
+                    confirmActionBtn.disabled = false;
+                    confirmActionBtn.textContent = 'Confirm';
+                }
+            });
+            
+            // Logout button
+            logoutBtn.addEventListener('click', () => {
+                window.location.href = '/api/auth/logout';
+            });
+            
+            // Show toast notification
+            function showToast(message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 3000
+                });
+                
+                bsToast.show();
+                
+                // Remove toast after it's hidden
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

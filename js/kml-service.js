@@ -472,4 +472,37 @@ class KmlService {
 // Create a singleton instance
 const kmlService = new KmlService();
 
-// Cache test disabled in production
+// Enable cache testing to verify if KML caching is supported
+// Uncomment this line to test the caching mechanism when deploying to a new environment
+// kmlService.testCacheSystem().then(result => console.log('KML cache test result:', result));
+
+// Check if KML caching is available
+async function checkKmlCacheAvailability() {
+    try {
+        // Check if the kml_cache table exists in the database schema
+        const { count, error } = await supabaseClient.supabase
+            .from('kml_cache')
+            .select('*', { count: 'exact', head: true });
+        
+        // If there's no error, the table exists
+        if (!error) {
+            console.log('KML cache is available with', count, 'entries');
+            kmlService.debugMode = true; // Enable debug mode temporarily to check caching
+            return true;
+        } else {
+            console.warn('KML cache table not available:', error.message);
+            return false;
+        }
+    } catch (e) {
+        console.warn('Error checking KML cache availability:', e.message);
+        return false;
+    }
+}
+
+// Call this when supabase client is initialized
+window.addEventListener('DOMContentLoaded', () => {
+    // Wait a bit for supabase client to be fully initialized
+    setTimeout(() => {
+        checkKmlCacheAvailability();
+    }, 2000);
+});

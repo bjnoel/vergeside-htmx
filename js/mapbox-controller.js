@@ -281,8 +281,14 @@ class MapController {
             // Show loading indicator
             this.showLoading();
             
-            // Get all pickups for the date range
-            const pickups = await supabaseClient.getAllPickups(this.startDate, this.endDate);
+            // Get consolidated data - all pickups, areas, and polygons in one request
+            const { pickups, areas, polygonsByArea } = await supabaseClient.getConsolidatedData(
+                this.startDate, 
+                this.endDate, 
+                councilId
+            );
+            
+            console.log(`Loaded ${pickups.length} pickups for ${areas.length} areas`);
             
             // Group pickups by area
             const areaPickupMap = new Map();
@@ -292,9 +298,6 @@ class MapController {
                 }
                 areaPickupMap.get(pickup.area_id).push(pickup);
             });
-            
-            // Get areas filtered by council if specified
-            const areas = await supabaseClient.getAreas(councilId);
             
             // Collect all features for the map
             const allFeatures = [];
@@ -308,8 +311,8 @@ class MapController {
                         areaPickups.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
                         const nextPickup = areaPickups[0];
                         
-                        // Get polygon coordinates
-                        const areaPolygons = await supabaseClient.getAreaPolygons(area.id);
+                        // Get polygon coordinates from consolidated data
+                        const areaPolygons = polygonsByArea[area.id] || [];
                         
                         if (areaPolygons && areaPolygons.length > 0) {
                             // Get the appropriate color based on pickup date
