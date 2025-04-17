@@ -1,45 +1,6 @@
 name = "vergeside-htmx"
 compatibility_date = "2023-10-30"
 
-# Account ID can be found in the Cloudflare dashboard
-# account_id = "your-account-id-here"
-
 # Specify the directory containing your static assets
 [site]
 bucket = "./"
-
-# Configure routes to handle clean URLs and proper 404s
-[site.mounts]
-source = "./"
-destination = "/"
-
-# Configure specific routes
-[routes]
-# Main pages
-"/" = { path = "index.html" }
-"/about" = { path = "about.html" }
-"/contact" = { path = "contact.html" }
-"/council" = { path = "council.html" }
-"/donate" = { path = "donate.html" }
-"/faq" = { path = "faq.html" }
-
-# Admin pages
-"/admin" = { path = "admin/index.html" }
-"/admin/areas" = { path = "admin/areas.html" }
-"/admin/area_polygons" = { path = "admin/area_polygons.html" }
-"/admin/councils" = { path = "admin/councils.html" }
-"/admin/pickups" = { path = "admin/pickups.html" }
-
-# Special handling for query parameters on admin pages
-# This ensures that pages like /admin/area_polygons?area_id=123 work correctly
-"/admin/*" = { path = "admin/:splat", status = 200 }
-
-# Serve the 404 page with a 404 status for any other routes
-"/*" = { path = "404.html", status = 404 }
-
-# Function definitions for API endpoints
-[[functions]]
-pattern = "/api/*"
-[[functions.binding]]
-name = "DB"
-type = "d1"

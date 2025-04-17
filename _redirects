@@ -1,0 +1,23 @@
+# Redirects file for Cloudflare Pages
+# Format: [source] [destination] [status]
+
+# Main pages
+/               /index.html     200
+/about          /about.html     200
+/contact        /contact.html   200
+/council        /council.html   200
+/donate         /donate.html    200
+/faq            /faq.html       200
+
+# Admin pages
+/admin          /admin/index.html     200
+/admin/areas    /admin/areas.html     200
+/admin/area_polygons  /admin/area_polygons.html  200
+/admin/councils /admin/councils.html  200
+/admin/pickups  /admin/pickups.html   200
+
+# Special handling for admin pages with parameters
+/admin/*        /admin/:splat   200
+
+# Catch-all route - must be last - redirects to 404 page with 404 status
+/*              /404.html       404
