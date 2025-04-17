@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /maps/
+Disallow: /admin/
+
+# Sitemap
+Sitemap: https://www.vergeside.com.au/sitemap.xml
