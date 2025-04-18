@@ -1,0 +1,76 @@
+<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container">
+            <a class="navbar-brand" href="/">Perth Vergeside Pickup Dates</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" id="nav-home">Map</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/council" id="nav-council">Councils</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about" id="nav-about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/faq" id="nav-faq">FAQ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact" id="nav-contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/donate" id="nav-donate">Support the Site</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<script>
+    // Function to set active nav link based on current URL path
+    function setActiveNavLink() {
+        // Clear active class from all nav links first
+        document.querySelectorAll('.navbar .nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Get current path (remove any query parameters)
+        const currentPath = window.location.pathname.split('?')[0];
+        
+        // Determine which navigation item should be active
+        if (currentPath === '/' || currentPath === '/index.html') {
+            document.getElementById('nav-home').classList.add('active');
+        } else if (currentPath.includes('/about')) {
+            document.getElementById('nav-about').classList.add('active');
+        } else if (currentPath.includes('/council')) {
+            document.getElementById('nav-council').classList.add('active');
+        } else if (currentPath.includes('/faq')) {
+            document.getElementById('nav-faq').classList.add('active');
+        } else if (currentPath.includes('/contact')) {
+            document.getElementById('nav-contact').classList.add('active');
+        } else if (currentPath.includes('/donate')) {
+            document.getElementById('nav-donate').classList.add('active');
+        } else if (currentPath.includes('/thanks')) {
+            // For the thanks page, no navigation item is active
+            // You could choose to highlight the contact page instead if desired
+            // document.getElementById('nav-contact').classList.add('active');
+        }
+    }
+    
+    // Make sure the script runs after the full DOM is loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setActiveNavLink);
+    } else {
+        // Document already loaded, run the function immediately
+        setActiveNavLink();
+    }
+    
+    // Also run it again after a short delay to ensure all includes are processed
+    setTimeout(setActiveNavLink, 100);
+</script>

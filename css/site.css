@@ -120,6 +120,30 @@ body {
   opacity: 1;
 }
 
+/* Navbar active link styling */
+.navbar .nav-link {
+  color: #495057;
+  position: relative;
+  padding-bottom: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.navbar .nav-link.active {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.navbar .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 3px;
+  background-color: #007bff;
+  border-radius: 2px 2px 0 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .legend-item {

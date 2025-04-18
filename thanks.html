@@ -17,39 +17,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" href="index.html">Vergeside</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="index.html">Map</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="council.html">Councils</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="about.html">About</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="faq.html">FAQ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="contact.html">Contact</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" href="donate.html">Support the Site</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
+    <!-- Shared Navigation Bar -->
+    <div data-include="/includes/navbar.html"></div>
 
     <div class="container">
         <main role="main" class="pb-3">
@@ -65,8 +34,8 @@
                             </div>
                             <p class="card-text lead">Your message has been sent successfully. We'll get back to you as soon as possible.</p>
                             <div class="mt-4">
-                                <a href="index.html" class="btn btn-primary me-3">Return to Homepage</a>
-                                <a href="contact.html" class="btn btn-outline-secondary">Back to Contact</a>
+                                <a href="/" class="btn btn-primary me-3">Return to Homepage</a>
+                                <a href="/contact" class="btn btn-outline-secondary">Back to Contact</a>
                             </div>
                         </div>
                     </div>
@@ -77,7 +46,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 Vergeside - <a href="contact.html">Contact</a>
+            &copy; 2025 Vergeside - <a href="/contact">Contact</a>
         </div>
     </footer>
 
@@ -87,6 +56,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/include-html.js"></script>
     
     <!-- Environment Configuration -->
     <script src="js/env-config.js"></script>
