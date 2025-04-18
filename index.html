@@ -180,13 +180,13 @@
     <script src="js/supabase-client.js"></script>
     <script src="js/mapbox-controller.js"></script>
     <script src="js/site.js"></script>
+    <script src="js/date-picker-fix.js"></script>
     
     <!-- Initialize Mapbox Map -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // The token should already be set in the above script
-            // Just initialize the map directly without further validation
-            initMap();
+            // The map initialization is now handled in mapbox-controller.js
+            // and date-picker-fix.js ensures proper initialization order
         });
     </script>
 </body>

@@ -462,13 +462,8 @@ class MapController {
     }
 }
 
-// Create a singleton instance
-// Create a singleton instance - REMOVED, will instantiate after config load
-// const mapController = new MapController();
-
 // Initialize the map when document is ready - now async
 async function initMap() {
-    let mapController; // Declare here
     try {
         // Wait for config from env-config.js
         console.log("Waiting for config...");
@@ -478,15 +473,36 @@ async function initMap() {
             throw new Error("Client configuration failed to load.");
         }
 
-        // Instantiate the controller AFTER config is loaded
-        mapController = new MapController();
+        // Create the controller and attach it to window
+        // This is the key fix - making sure it's globally accessible
+        window.mapController = new MapController();
 
         // Initialize the map (it will read token from window.ENV inside)
-        const mapInitialized = mapController.initMap();
+        const mapInitialized = window.mapController.initMap();
 
         // Only load areas if the map was successfully initialized
-        if (mapInitialized && mapController.map) {
-           await mapController.loadAreas(); // Make sure to await this if needed elsewhere
+        if (mapInitialized && window.mapController.map) {
+            // Get date range from picker if available
+            let startDate, endDate;
+            const dateFormat = getMapConfig('DEFAULT_DATE_FORMAT', 'YYYY-MM-DD');
+            
+            if ($('#daterange').data('daterangepicker')) {
+                startDate = $('#daterange').data('daterangepicker').startDate.format(dateFormat);
+                endDate = $('#daterange').data('daterangepicker').endDate.format(dateFormat);
+                console.log('Using date range from picker:', startDate, 'to', endDate);
+            } else {
+                // Default date range if picker not initialized
+                const timezone = getMapConfig('TIMEZONE', '+08:00');
+                const defaultEndOffset = getMapConfig('DEFAULT_DATE_RANGE', { END_OFFSET: 28 }).END_OFFSET;
+                
+                startDate = moment().utcOffset(timezone).format(dateFormat);
+                endDate = moment().utcOffset(timezone).add(defaultEndOffset, 'days').format(dateFormat);
+                console.log('Using default date range:', startDate, 'to', endDate);
+            }
+            
+            // Set the date range and load areas
+            window.mapController.setDateRange(startDate, endDate);
+            await window.mapController.loadAreas();
         } else {
             console.log('Map not initialized, skipping loadAreas');
         }
