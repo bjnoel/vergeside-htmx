@@ -1,13 +1,15 @@
-# Redirects file for Cloudflare Pages
-# Format: [source] [destination] [status]
+# Redirects and rewrites for Cloudflare Pages
+# Note: Using terminal redirects (200!) to prevent infinite redirect loops
+# These work correctly despite CLI warnings
 
-# Main pages - make sure to add trailing slashes to avoid redirect loops
+# Main pages with terminal redirects to avoid infinite loops
 /               /index.html     200!
 /about          /about.html     200!
 /contact        /contact.html   200!
 /council        /council.html   200!
 /donate         /donate.html    200!
 /faq            /faq.html       200!
+/thanks         /thanks.html    200!
 
 # Admin pages
 /admin          /admin/index.html     200!
@@ -15,9 +17,6 @@
 /admin/area_polygons  /admin/area_polygons.html  200!
 /admin/councils /admin/councils.html  200!
 /admin/pickups  /admin/pickups.html   200!
-
-# Special handling for admin pages with parameters
-/admin/*        /admin/:splat   200!
 
 # Catch-all route - must be last - redirects to 404 page with 404 status
 /*              /404.html       404

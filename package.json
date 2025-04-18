@@ -2,7 +2,6 @@
   "name": "vergeside-htmx",
   "version": "1.0.0",
   "description": "Vergeside bulk waste collection schedule app",
-  "main": "server.js",
   "scripts": {
     "pages:dev": "wrangler pages dev . --compatibility-date=2024-04-05",
     "start": "node server.js",
@@ -15,7 +14,7 @@
     "jose": "^6.0.10"
   },
   "devDependencies": {
-    "wrangler": "^4.7.0"
+    "wrangler": "^4.12.0"
   },
   "engines": {
     "node": ">=18.0.0"
