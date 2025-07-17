@@ -368,7 +368,155 @@ export async function onRequest(context) {
                 }
                 return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
             }
-             // TODO: Add POST/PUT/DELETE if needed
+            else if (method === 'POST') {
+                const body = await request.json();
+                const { name, council_id } = body;
+                
+                // Validate required fields
+                if (!name) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: name' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                if (!council_id) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: council_id' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Parse council_id as integer
+                const councilIdInt = parseInt(council_id, 10);
+                if (isNaN(councilIdInt)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid council_id: must be a number' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Prepare the insert data
+                const insertData = {
+                    name,
+                    council_id: councilIdInt
+                };
+                
+                const { data, error } = await adminSupabase
+                    .from('area')
+                    .insert(insertData)
+                    .select();
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                if (!data || data.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'No data returned after insert' 
+                    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data: data[0] }), { 
+                    status: 201, 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'PUT' && id) {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid area ID' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const body = await request.json();
+                const { name, council_id } = body;
+                
+                // Validate required fields
+                if (!name) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: name' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                if (!council_id) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: council_id' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Parse council_id as integer
+                const councilIdInt = parseInt(council_id, 10);
+                if (isNaN(councilIdInt)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid council_id: must be a number' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Prepare the update data
+                const updateData = {
+                    name,
+                    council_id: councilIdInt
+                };
+                
+                const { data, error } = await adminSupabase
+                    .from('area')
+                    .update(updateData)
+                    .eq('id', areaId)
+                    .select();
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                if (!data || data.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Area not found or no changes applied' 
+                    }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data: data[0] }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'DELETE' && id) {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid area ID' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const { error } = await adminSupabase
+                    .from('area')
+                    .delete()
+                    .eq('id', areaId);
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ success: true, message: 'Area deleted successfully' }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
         }
         else if (resource === 'area_polygon') {
              // TODO: Migrate logic from api/admin/area_polygon_routes.js and api/admin/area_polygon.js
