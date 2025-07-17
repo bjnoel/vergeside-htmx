@@ -199,7 +199,147 @@ export async function onRequest(context) {
                     return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
                 }
             }
-            // TODO: Add POST/PUT/DELETE if needed
+            else if (method === 'POST') {
+                const body = await request.json();
+                const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = body;
+                
+                // Validate required fields
+                if (!name) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: name' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                if (!council_url) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: council_url' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Prepare the insert data
+                const insertData = {
+                    name,
+                    council_url,
+                    bulk_waste_url: bulk_waste_url || null,
+                    has_pickups: has_pickups !== undefined ? has_pickups : true,
+                    date_last_checked: date_last_checked || null
+                };
+                
+                const { data, error } = await adminSupabase
+                    .from('council')
+                    .insert(insertData)
+                    .select();
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                if (!data || data.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'No data returned after insert' 
+                    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data: data[0] }), { 
+                    status: 201, 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'PUT' && id) {
+                const councilId = parseInt(id, 10);
+                if (isNaN(councilId)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid council ID' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const body = await request.json();
+                const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = body;
+                
+                // Validate required fields
+                if (!name) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: name' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                if (!council_url) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required field: council_url' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                // Prepare the update data
+                const updateData = {
+                    name,
+                    council_url,
+                    bulk_waste_url: bulk_waste_url || null,
+                    has_pickups: has_pickups !== undefined ? has_pickups : true
+                };
+                
+                // Only include date_last_checked if it's provided
+                if (date_last_checked !== undefined) {
+                    updateData.date_last_checked = date_last_checked;
+                }
+                
+                const { data, error } = await adminSupabase
+                    .from('council')
+                    .update(updateData)
+                    .eq('id', councilId)
+                    .select();
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                if (!data || data.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Council not found or no changes applied' 
+                    }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data: data[0] }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'DELETE' && id) {
+                const councilId = parseInt(id, 10);
+                if (isNaN(councilId)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid council ID' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const { error } = await adminSupabase
+                    .from('council')
+                    .delete()
+                    .eq('id', councilId);
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ success: true, message: 'Council deleted successfully' }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
         }
         else if (resource === 'area') {
             // TODO: Migrate logic from api/admin/area.js
