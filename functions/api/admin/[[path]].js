@@ -350,6 +350,8 @@ export async function onRequest(context) {
 
                 // Filter by council if requested (for list view)
                 const councilId = url.searchParams.get('council_id');
+                const searchTerm = url.searchParams.get('search');
+                
                 if (councilId) {
                     query = query.eq('council_id', councilId).order('name');
                 }
@@ -360,6 +362,11 @@ export async function onRequest(context) {
                  // Default order if fetching all
                  else {
                      query = query.order('name');
+                     
+                     // Add search functionality
+                     if (searchTerm) {
+                         query = query.ilike('name', `%${searchTerm}%`);
+                     }
                  }
 
                 const { data, error } = await query;
