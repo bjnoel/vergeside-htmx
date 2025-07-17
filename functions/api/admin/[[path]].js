@@ -159,9 +159,45 @@ export async function onRequest(context) {
         if (resource === 'council') {
             // TODO: Migrate logic from api/admin/council.js
             if (method === 'GET') {
-                 const { data, error } = await adminSupabase.from('council').select('*').order('name');
-                 if (error) throw error;
-                 return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
+                // If ID is provided, get specific council
+                if (id) {
+                    const councilId = parseInt(id, 10);
+                    if (isNaN(councilId)) {
+                        return new Response(JSON.stringify({ success: false, error: 'Invalid council ID' }), { 
+                            status: 400,
+                            headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    const { data, error } = await adminSupabase
+                        .from('council')
+                        .select('*')
+                        .eq('id', councilId)
+                        .single();
+                    
+                    if (error) {
+                        return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                            status: 400,
+                            headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    if (!data) {
+                        return new Response(JSON.stringify({ success: false, error: 'Council not found' }), { 
+                            status: 404,
+                            headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    return new Response(JSON.stringify({ success: true, data }), { 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                } else {
+                    // Get all councils
+                    const { data, error } = await adminSupabase.from('council').select('*').order('name');
+                    if (error) throw error;
+                    return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
+                }
             }
             // TODO: Add POST/PUT/DELETE if needed
         }
