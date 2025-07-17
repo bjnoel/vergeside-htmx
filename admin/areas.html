@@ -208,6 +208,7 @@
             const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 
             let deleteAreaId = null;
+            let councilsData = []; // Global variable to store councils data
             // let authToken = null; // Removed - will get token directly
 
             // Check if user is authenticated (init runs synchronously now)
@@ -603,9 +604,6 @@
                 });
             }
 
-            // Global variable to store councils data
-            let councilsData = [];
-
             // Function to toggle sample address visibility based on council selection
             function toggleSampleAddressVisibility(councilId, isEdit = false) {
                 const container = isEdit ? 
@@ -618,7 +616,7 @@
                 if (!container || !input) return;
                 
                 const selectedCouncil = councilsData.find(c => c.id == councilId);
-                const hasMaps = selectedCouncil?.has_maps || false;
+                const hasMaps = selectedCouncil?.has_maps === true; // More explicit check
                 
                 if (hasMaps) {
                     container.style.display = 'none';
