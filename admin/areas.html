@@ -61,10 +61,10 @@
                             <label for="area-name" class="form-label">Area Name*</label>
                             <input type="text" class="form-control" id="area-name" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6 mb-3" id="area-sample-address-container">
                             <label for="area-sample-address" class="form-label">Sample Address</label>
                             <input type="text" class="form-control" id="area-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
-                            <div class="form-text">Optional address used for pickup lookups when no map is available</div>
+                            <div class="form-text">Address used for pickup lookups when council doesn't provide maps</div>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Area</button>
@@ -134,10 +134,10 @@
                             <label for="edit-name" class="form-label">Area Name*</label>
                             <input type="text" class="form-control" id="edit-name" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3" id="edit-sample-address-container">
                             <label for="edit-sample-address" class="form-label">Sample Address</label>
                             <input type="text" class="form-control" id="edit-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
-                            <div class="form-text">Optional address used for pickup lookups when no map is available</div>
+                            <div class="form-text">Address used for pickup lookups when council doesn't provide maps</div>
                         </div>
                     </form>
                 </div>
@@ -249,6 +249,9 @@
 
                     const result = await response.json();
                     const data = result.data || [];
+                    
+                    // Store councils data globally
+                    councilsData = data;
 
                     // Populate council dropdowns
                     councilSelect.innerHTML = '<option value="">Select Council</option>';
@@ -438,6 +441,9 @@
                     document.getElementById('edit-name').value = data.name;
                     document.getElementById('edit-sample-address').value = data.sample_address || '';
 
+                    // Toggle sample address visibility based on council
+                    toggleSampleAddressVisibility(data.council_id, true);
+
                     editAreaModal.show();
                 } catch (error) {
                     console.error('Error opening edit modal:', error);
@@ -597,6 +603,31 @@
                 });
             }
 
+            // Global variable to store councils data
+            let councilsData = [];
+
+            // Function to toggle sample address visibility based on council selection
+            function toggleSampleAddressVisibility(councilId, isEdit = false) {
+                const container = isEdit ? 
+                    document.getElementById('edit-sample-address-container') : 
+                    document.getElementById('area-sample-address-container');
+                const input = isEdit ? 
+                    document.getElementById('edit-sample-address') : 
+                    document.getElementById('area-sample-address');
+                
+                if (!container || !input) return;
+                
+                const selectedCouncil = councilsData.find(c => c.id == councilId);
+                const hasMaps = selectedCouncil?.has_maps || false;
+                
+                if (hasMaps) {
+                    container.style.display = 'none';
+                    input.value = ''; // Clear the value since it's not needed
+                } else {
+                    container.style.display = 'block';
+                }
+            }
+
             // Lookup address function
             function lookupAddress(address, bulkWasteUrl) {
                 if (!address || !bulkWasteUrl) {
@@ -631,6 +662,15 @@
                 if (e.key === 'Enter') {
                     searchAreas();
                 }
+            });
+            
+            // Add event listeners for council selection to toggle sample address visibility
+            councilSelect.addEventListener('change', (e) => {
+                toggleSampleAddressVisibility(e.target.value, false);
+            });
+            
+            editCouncilSelect.addEventListener('change', (e) => {
+                toggleSampleAddressVisibility(e.target.value, true);
             });
         });
     </script>

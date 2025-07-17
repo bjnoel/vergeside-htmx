@@ -201,7 +201,7 @@ export async function onRequest(context) {
             }
             else if (method === 'POST') {
                 const body = await request.json();
-                const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = body;
+                const { name, council_url, bulk_waste_url, has_pickups, has_maps, date_last_checked } = body;
                 
                 // Validate required fields
                 if (!name) {
@@ -224,6 +224,7 @@ export async function onRequest(context) {
                     council_url,
                     bulk_waste_url: bulk_waste_url || null,
                     has_pickups: has_pickups !== undefined ? has_pickups : true,
+                    has_maps: has_maps !== undefined ? has_maps : false,
                     date_last_checked: date_last_checked || null
                 };
                 
@@ -261,7 +262,7 @@ export async function onRequest(context) {
                 }
                 
                 const body = await request.json();
-                const { name, council_url, bulk_waste_url, has_pickups, date_last_checked } = body;
+                const { name, council_url, bulk_waste_url, has_pickups, has_maps, date_last_checked } = body;
                 
                 // Validate required fields
                 if (!name) {
@@ -283,7 +284,8 @@ export async function onRequest(context) {
                     name,
                     council_url,
                     bulk_waste_url: bulk_waste_url || null,
-                    has_pickups: has_pickups !== undefined ? has_pickups : true
+                    has_pickups: has_pickups !== undefined ? has_pickups : true,
+                    has_maps: has_maps !== undefined ? has_maps : false
                 };
                 
                 // Only include date_last_checked if it's provided

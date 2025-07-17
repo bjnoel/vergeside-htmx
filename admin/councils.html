@@ -62,11 +62,24 @@
                         <label for="council-bulk-waste-url" class="form-label">Bulk Waste Information URL</label>
                         <input type="url" class="form-control" id="council-bulk-waste-url" placeholder="https://example.com/bulk-waste">
                     </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="council-has-pickups" checked>
-                        <label class="form-check-label" for="council-has-pickups">
-                            Has Bulk Waste Pickups
-                        </label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="council-has-pickups" checked>
+                                <label class="form-check-label" for="council-has-pickups">
+                                    Has Bulk Waste Pickups
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="council-has-maps">
+                                <label class="form-check-label" for="council-has-maps">
+                                    Has Maps/Zones
+                                </label>
+                                <div class="form-text">Check if council provides area maps or zones</div>
+                            </div>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Council</button>
                 </form>
@@ -98,6 +111,7 @@
                                 <th>Website</th>
                                 <th>Bulk Waste URL</th>
                                 <th>Has Pickups</th>
+                                <th>Has Maps</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -136,11 +150,24 @@
                             <label for="edit-bulk-waste-url" class="form-label">Bulk Waste Information URL</label>
                             <input type="url" class="form-control" id="edit-bulk-waste-url">
                         </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="edit-has-pickups">
-                            <label class="form-check-label" for="edit-has-pickups">
-                                Has Bulk Waste Pickups
-                            </label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="edit-has-pickups">
+                                    <label class="form-check-label" for="edit-has-pickups">
+                                        Has Bulk Waste Pickups
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="edit-has-maps">
+                                    <label class="form-check-label" for="edit-has-maps">
+                                        Has Maps/Zones
+                                    </label>
+                                    <div class="form-text">Check if council provides area maps or zones</div>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -281,6 +308,11 @@
                                         '<span class="badge bg-secondary">No</span>'}
                                 </td>
                                 <td>
+                                    ${council.has_maps ? 
+                                        '<span class="badge bg-success">Yes</span>' : 
+                                        '<span class="badge bg-secondary">No</span>'}
+                                </td>
+                                <td>
                                     <button class="btn btn-sm btn-primary edit-btn" data-id="${council.id}">
                                         Edit
                                     </button>
@@ -316,6 +348,7 @@
                 const website = document.getElementById('council-website').value.trim();
                 const bulkWasteUrl = document.getElementById('council-bulk-waste-url').value.trim();
                 const hasPickups = document.getElementById('council-has-pickups').checked;
+                const hasMaps = document.getElementById('council-has-maps').checked;
                 
                 if (!name) {
                     showToast('Council name is required', 'warning');
@@ -342,7 +375,8 @@
                             name, 
                             council_url: website || '',
                             bulk_waste_url: bulkWasteUrl || null,
-                            has_pickups: hasPickups
+                            has_pickups: hasPickups,
+                            has_maps: hasMaps
                         })
                     });
                     
@@ -390,6 +424,7 @@
                     document.getElementById('edit-website').value = data.council_url || '';
                     document.getElementById('edit-bulk-waste-url').value = data.bulk_waste_url || '';
                     document.getElementById('edit-has-pickups').checked = data.has_pickups || false;
+                    document.getElementById('edit-has-maps').checked = data.has_maps || false;
                     
                     editCouncilModal.show();
                 } catch (error) {
@@ -407,6 +442,7 @@
                 const website = document.getElementById('edit-website').value.trim();
                 const bulkWasteUrl = document.getElementById('edit-bulk-waste-url').value.trim();
                 const hasPickups = document.getElementById('edit-has-pickups').checked;
+                const hasMaps = document.getElementById('edit-has-maps').checked;
                 
                 if (!name) {
                     showToast('Council name is required', 'warning');
@@ -429,7 +465,8 @@
                             name, 
                             council_url: website || '',
                             bulk_waste_url: bulkWasteUrl || null,
-                            has_pickups: hasPickups
+                            has_pickups: hasPickups,
+                            has_maps: hasMaps
                         })
                     });
                     
