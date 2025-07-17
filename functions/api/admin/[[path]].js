@@ -346,7 +346,7 @@ export async function onRequest(context) {
         else if (resource === 'area') {
             // TODO: Migrate logic from api/admin/area.js
              if (method === 'GET') {
-                let query = adminSupabase.from('area').select('*, council:council_id (id, name)');
+                let query = adminSupabase.from('area').select('*, council:council_id (id, name, bulk_waste_url)');
 
                 // Filter by council if requested (for list view)
                 const councilId = url.searchParams.get('council_id');
