@@ -271,25 +271,61 @@ export async function onRequest(context) {
          else if (resource === 'area_pickup') {
              // TODO: Migrate logic from server.js
              if (method === 'GET') {
-                 let query = adminSupabase.from('area_pickup').select('*, area:area_id (id, name, council:council_id (id, name))').order('start_date', { ascending: false });
+                 // If ID is provided, get specific pickup
+                 if (id) {
+                     const pickupId = parseInt(id, 10);
+                     if (isNaN(pickupId)) {
+                         return new Response(JSON.stringify({ success: false, error: 'Invalid pickup ID' }), { 
+                             status: 400,
+                             headers: { 'Content-Type': 'application/json' } 
+                         });
+                     }
+                     
+                     const { data, error } = await adminSupabase
+                         .from('area_pickup')
+                         .select('*, area:area_id (id, name, council:council_id (id, name))')
+                         .eq('id', pickupId)
+                         .single();
+                     
+                     if (error) {
+                         return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                             status: 400,
+                             headers: { 'Content-Type': 'application/json' } 
+                         });
+                     }
+                     
+                     if (!data) {
+                         return new Response(JSON.stringify({ success: false, error: 'Pickup not found' }), { 
+                             status: 404,
+                             headers: { 'Content-Type': 'application/json' } 
+                         });
+                     }
+                     
+                     return new Response(JSON.stringify({ success: true, data }), { 
+                         headers: { 'Content-Type': 'application/json' } 
+                     });
+                 } else {
+                     // Get all pickups with filtering
+                     let query = adminSupabase.from('area_pickup').select('*, area:area_id (id, name, council:council_id (id, name))').order('start_date', { ascending: false });
 
-                 // Implement filtering logic based on query parameter
-                 const filter = url.searchParams.get('filter') || 'all';
-                 const today = new Date().toISOString().split('T')[0];
-                 const currentMonth = today.substring(0, 7); // YYYY-MM
+                     // Implement filtering logic based on query parameter
+                     const filter = url.searchParams.get('filter') || 'all';
+                     const today = new Date().toISOString().split('T')[0];
+                     const currentMonth = today.substring(0, 7); // YYYY-MM
 
-                 if (filter === 'future') {
-                     query = query.gte('start_date', today);
-                 } else if (filter === 'past') {
-                     query = query.lt('start_date', today);
-                 } else if (filter === 'current') {
-                     query = query.like('start_date', `${currentMonth}%`);
+                     if (filter === 'future') {
+                         query = query.gte('start_date', today);
+                     } else if (filter === 'past') {
+                         query = query.lt('start_date', today);
+                     } else if (filter === 'current') {
+                         query = query.like('start_date', `${currentMonth}%`);
+                     }
+                     // 'all' filter needs no additional date filtering
+
+                     const { data, error } = await query;
+                     if (error) throw error;
+                     return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
                  }
-                 // 'all' filter needs no additional date filtering
-
-                 const { data, error } = await query;
-                 if (error) throw error;
-                 return new Response(JSON.stringify({ success: true, data }), { headers: { 'Content-Type': 'application/json' } });
              }
              else if (method === 'POST') {
                  const body = await request.json();
