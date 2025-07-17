@@ -61,6 +61,11 @@
                             <label for="area-name" class="form-label">Area Name*</label>
                             <input type="text" class="form-control" id="area-name" required>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="area-sample-address" class="form-label">Sample Address</label>
+                            <input type="text" class="form-control" id="area-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
+                            <div class="form-text">Optional address used for pickup lookups when no map is available</div>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Area</button>
                 </form>
@@ -90,6 +95,7 @@
                                 <th>ID</th>
                                 <th>Council</th>
                                 <th>Name</th>
+                                <th>Sample Address</th>
                                 <th>Polygons</th>
                                 <th>Actions</th>
                             </tr>
@@ -127,6 +133,11 @@
                         <div class="mb-3">
                             <label for="edit-name" class="form-label">Area Name*</label>
                             <input type="text" class="form-control" id="edit-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-sample-address" class="form-label">Sample Address</label>
+                            <input type="text" class="form-control" id="edit-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
+                            <div class="form-text">Optional address used for pickup lookups when no map is available</div>
                         </div>
                     </form>
                 </div>
@@ -302,6 +313,13 @@
                                 <td>${area.council ? area.council.name : 'N/A'}</td>
                                 <td>${area.name}</td>
                                 <td>
+                                    <span class="text-muted small">${area.sample_address || 'Not set'}</span>
+                                    ${area.sample_address && area.council && area.council.bulk_waste_url ? 
+                                        `<br><button class="btn btn-sm btn-outline-info mt-1" onclick="lookupAddress('${area.sample_address}', '${area.council.bulk_waste_url}')">
+                                            <i class="bi bi-search"></i> Lookup
+                                        </button>` : ''}
+                                </td>
+                                <td>
                                     <a href="/admin/area_polygons?area_id=${area.id}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-geo-alt"></i> Edit Polygons
                                     </a>
@@ -347,6 +365,7 @@
 
                 const name = document.getElementById('area-name').value.trim();
                 const councilId = document.getElementById('council-id').value;
+                const sampleAddress = document.getElementById('area-sample-address').value.trim();
 
                 if (!name) {
                     showToast('Area name is required', 'warning');
@@ -372,7 +391,8 @@
                         },
                         body: JSON.stringify({
                             name,
-                            council_id: councilId
+                            council_id: councilId,
+                            sample_address: sampleAddress || null
                         })
                     });
 
@@ -416,6 +436,7 @@
                     document.getElementById('edit-id').value = data.id;
                     document.getElementById('edit-council-id').value = data.council_id || '';
                     document.getElementById('edit-name').value = data.name;
+                    document.getElementById('edit-sample-address').value = data.sample_address || '';
 
                     editAreaModal.show();
                 } catch (error) {
@@ -431,6 +452,7 @@
                 const id = document.getElementById('edit-id').value;
                 const name = document.getElementById('edit-name').value.trim();
                 const councilId = document.getElementById('edit-council-id').value;
+                const sampleAddress = document.getElementById('edit-sample-address').value.trim();
 
                 if (!name) {
                     showToast('Area name is required', 'warning');
@@ -457,7 +479,8 @@
                         },
                         body: JSON.stringify({
                             name,
-                            council_id: councilId
+                            council_id: councilId,
+                            sample_address: sampleAddress || null
                         })
                     });
 
@@ -571,6 +594,25 @@
                 // Remove toast after it's hidden
                 toast.addEventListener('hidden.bs.toast', () => {
                     toast.remove();
+                });
+            }
+
+            // Lookup address function
+            function lookupAddress(address, bulkWasteUrl) {
+                if (!address || !bulkWasteUrl) {
+                    showToast('Missing address or bulk waste URL', 'warning');
+                    return;
+                }
+                
+                // Open the bulk waste URL in a new tab
+                // The address will be copied to clipboard for easy pasting
+                navigator.clipboard.writeText(address).then(() => {
+                    window.open(bulkWasteUrl, '_blank');
+                    showToast(`Address "${address}" copied to clipboard. Paste it into the opened council search form.`, 'info');
+                }).catch(err => {
+                    console.error('Failed to copy address:', err);
+                    window.open(bulkWasteUrl, '_blank');
+                    showToast(`Opened council search page. Please manually enter: ${address}`, 'info');
                 });
             }
 

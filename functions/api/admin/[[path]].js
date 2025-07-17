@@ -370,7 +370,7 @@ export async function onRequest(context) {
             }
             else if (method === 'POST') {
                 const body = await request.json();
-                const { name, council_id } = body;
+                const { name, council_id, sample_address } = body;
                 
                 // Validate required fields
                 if (!name) {
@@ -399,7 +399,8 @@ export async function onRequest(context) {
                 // Prepare the insert data
                 const insertData = {
                     name,
-                    council_id: councilIdInt
+                    council_id: councilIdInt,
+                    sample_address: sample_address || null
                 };
                 
                 const { data, error } = await adminSupabase
@@ -436,7 +437,7 @@ export async function onRequest(context) {
                 }
                 
                 const body = await request.json();
-                const { name, council_id } = body;
+                const { name, council_id, sample_address } = body;
                 
                 // Validate required fields
                 if (!name) {
@@ -465,7 +466,8 @@ export async function onRequest(context) {
                 // Prepare the update data
                 const updateData = {
                     name,
-                    council_id: councilIdInt
+                    council_id: councilIdInt,
+                    sample_address: sample_address || null
                 };
                 
                 const { data, error } = await adminSupabase
