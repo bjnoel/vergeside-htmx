@@ -209,6 +209,7 @@
 
             let deleteAreaId = null;
             let councilsData = []; // Global variable to store councils data
+            let currentSearchTerm = ''; // Track current search term
             // let authToken = null; // Removed - will get token directly
 
             // Check if user is authenticated (init runs synchronously now)
@@ -319,7 +320,7 @@
                                 <td>
                                     <span class="text-muted small">${area.sample_address || 'Not set'}</span>
                                     ${area.sample_address && area.council && area.council.bulk_waste_url ? 
-                                        `<br><button class="btn btn-sm btn-outline-info mt-1" onclick="lookupAddress('${area.sample_address}', '${area.council.bulk_waste_url}')">
+                                        `<br><button class="btn btn-sm btn-outline-info mt-1" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
                                             <i class="bi bi-search"></i> Lookup
                                         </button>` : ''}
                                 </td>
@@ -406,7 +407,7 @@
                     }
                     showToast('Area added successfully', 'success');
                     areaForm.reset();
-                    loadAreas(); // Reload areas
+                    loadAreas(currentSearchTerm); // Reload areas with current search term
                 } catch (error) {
                     console.error('Error adding area:', error);
                     showToast('Error adding area', 'danger');
@@ -496,7 +497,7 @@
                         throw new Error(result.error || 'Error updating area');
                     }
                     showToast('Area updated successfully', 'success');
-                    loadAreas(); // Reload areas
+                    loadAreas(currentSearchTerm); // Reload areas with current search term
                 } catch (error) {
                     console.error('Error updating area:', error);
                     showToast('Error updating area', 'danger');
@@ -535,7 +536,7 @@
                     }
                     showToast('Area deleted successfully', 'success');
                     deleteAreaId = null;
-                    loadAreas(); // Reload areas
+                    loadAreas(currentSearchTerm); // Reload areas with current search term
                 } catch (error) {
                     console.error('Error deleting area:', error);
                     showToast('Error deleting area', 'danger');
@@ -558,6 +559,7 @@
             // Search areas
             function searchAreas() { // Removed token parameter
                 const searchTerm = searchInput.value.trim();
+                currentSearchTerm = searchTerm; // Store search term
                 loadAreas(searchTerm); // Pass search term
             }
 
