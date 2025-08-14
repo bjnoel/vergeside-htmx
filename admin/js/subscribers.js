@@ -837,13 +837,29 @@ async function sendTestEmail() {
             })
         });
         
-        const result = await response.json();
+        console.log('Test email response status:', response.status);
+        console.log('Test email response headers:', Object.fromEntries(response.headers.entries()));
+        
+        // Check if response has content before trying to parse JSON
+        const responseText = await response.text();
+        console.log('Test email response text:', responseText);
+        
+        if (!responseText) {
+            throw new Error(`Empty response from server (status: ${response.status})`);
+        }
+        
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
+        }
         
         if (response.ok && result.success) {
             showToast(`Test email sent successfully to ${email}`, 'success');
             bootstrap.Modal.getInstance(document.getElementById('testEmailModal')).hide();
         } else {
-            throw new Error(result.error || 'Failed to send test email');
+            throw new Error(result.error || `HTTP ${response.status}: ${responseText.substring(0, 200)}`);
         }
         
     } catch (error) {
