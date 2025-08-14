@@ -280,3 +280,4 @@ logs/*
 .dev.vars
 /.dev.vars
 /.env
+/supabase/.temp/*
