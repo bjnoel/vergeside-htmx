@@ -825,11 +825,13 @@ async function sendTestEmail() {
     try {
         const token = adminAuth.getAccessToken();
         const supabaseUrl = window.ENV?.SUPABASE_URL || CONFIG?.SUPABASE_URL || 'https://wihegqwakwwvckxrivem.supabase.co';
+        const supabaseAnonKey = window.ENV?.SUPABASE_ANON_KEY || CONFIG?.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpaGVncXdha3d3dmNreHJpdmVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA2Mzg1NDksImV4cCI6MjA1NjIxNDU0OX0.aP2ThYybxtUE6JaVHs1sowZaDfAbxxPC_yBotY5qApM';
         const response = await fetch(`${supabaseUrl}/functions/v1/test-email`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Content-Type': 'application/json',
+                'x-admin-token': token  // Pass Auth0 token as custom header
             },
             body: JSON.stringify({
                 email: email,
