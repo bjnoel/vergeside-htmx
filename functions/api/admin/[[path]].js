@@ -650,6 +650,530 @@ export async function onRequest(context) {
                  return new Response(JSON.stringify({ success: true, message: 'Pickup deleted' }), { headers: { 'Content-Type': 'application/json' } });
              }
          }
+        else if (resource === 'email_subscribers') {
+            // Email subscribers management
+            if (method === 'GET') {
+                // Handle stats endpoint
+                if (pathSegments[1] === 'stats') {
+                    // Get subscriber statistics
+                    const { count: totalCount, error: totalError } = await adminSupabase
+                        .from('email_subscribers')
+                        .select('*', { count: 'exact', head: true });
+
+                    if (totalError) {
+                        return new Response(JSON.stringify({ success: false, error: totalError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    const { count: activeCount, error: activeError } = await adminSupabase
+                        .from('email_subscribers')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('is_active', true);
+
+                    if (activeError) {
+                        return new Response(JSON.stringify({ success: false, error: activeError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    
+                    const { count: recentCount, error: recentError } = await adminSupabase
+                        .from('email_subscribers')
+                        .select('*', { count: 'exact', head: true })
+                        .gte('created_at', weekAgo.toISOString());
+
+                    if (recentError) {
+                        return new Response(JSON.stringify({ success: false, error: recentError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    return new Response(JSON.stringify({
+                        success: true,
+                        data: {
+                            total: totalCount || 0,
+                            active: activeCount || 0,
+                            inactive: (totalCount || 0) - (activeCount || 0),
+                            recent: recentCount || 0
+                        }
+                    }), { headers: { 'Content-Type': 'application/json' } });
+                }
+                // Handle single subscriber by ID
+                else if (id) {
+                    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                    if (!uuidRegex.test(id)) {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: 'Invalid subscriber ID format' 
+                        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    
+                    const { data, error } = await adminSupabase
+                        .from('email_subscribers')
+                        .select('*')
+                        .eq('id', id)
+                        .single();
+                        
+                    if (error) {
+                        if (error.code === 'PGRST116') {
+                            return new Response(JSON.stringify({ success: false, error: 'Subscriber not found' }), { 
+                                status: 404, headers: { 'Content-Type': 'application/json' } 
+                            });
+                        }
+                        return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    return new Response(JSON.stringify({ success: true, data }), { 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                // Handle list with filtering and pagination
+                else {
+                    const search = url.searchParams.get('search');
+                    const status = url.searchParams.get('status');
+                    const page = parseInt(url.searchParams.get('page') || '1', 10);
+                    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+                    const sort = url.searchParams.get('sort') || 'created_at';
+                    const order = url.searchParams.get('order') || 'desc';
+
+                    let query = adminSupabase
+                        .from('email_subscribers')
+                        .select('*', { count: 'exact' });
+
+                    if (search) {
+                        query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+                    }
+
+                    if (status !== null && status !== '') {
+                        query = query.eq('is_active', status === 'true');
+                    }
+
+                    const validSortFields = ['name', 'email', 'created_at', 'updated_at', 'is_active'];
+                    const validOrders = ['asc', 'desc'];
+                    
+                    if (validSortFields.includes(sort) && validOrders.includes(order)) {
+                        query = query.order(sort, { ascending: order === 'asc' });
+                    } else {
+                        query = query.order('created_at', { ascending: false });
+                    }
+
+                    if (page > 0 && limit > 0) {
+                        const from = (page - 1) * limit;
+                        const to = from + limit - 1;
+                        query = query.range(from, to);
+                    }
+
+                    const { data, error, count } = await query;
+                        
+                    if (error) {
+                        return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    return new Response(JSON.stringify({ 
+                        success: true, 
+                        data,
+                        pagination: {
+                            page: page || 1,
+                            limit: limit || 50,
+                            total: count,
+                            pages: Math.ceil((count || 0) / (limit || 50))
+                        }
+                    }), { headers: { 'Content-Type': 'application/json' } });
+                }
+            }
+            else if (method === 'POST') {
+                const body = await request.json();
+                const { name, email, is_active = true } = body;
+                
+                if (!name || !email) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required fields: name and email' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'Invalid email format'
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const insertData = {
+                    name: name.trim(),
+                    email: email.toLowerCase().trim(),
+                    is_active: Boolean(is_active)
+                };
+                
+                const { data, error } = await adminSupabase
+                    .from('email_subscribers')
+                    .insert(insertData)
+                    .select()
+                    .single();
+                    
+                if (error) {
+                    if (error.code === '23505') {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: 'Email address already exists' 
+                        }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data }), { 
+                    status: 201, headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'PUT' && id) {
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!uuidRegex.test(id)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid subscriber ID format' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const body = await request.json();
+                const { name, email, is_active } = body;
+                
+                if (!name || !email) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing required fields: name and email' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    return new Response(JSON.stringify({
+                        success: false,
+                        error: 'Invalid email format'
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const updateData = {
+                    name: name.trim(),
+                    email: email.toLowerCase().trim(),
+                    is_active: Boolean(is_active),
+                    updated_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await adminSupabase
+                    .from('email_subscribers')
+                    .update(updateData)
+                    .eq('id', id)
+                    .select()
+                    .single();
+                    
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        return new Response(JSON.stringify({ success: false, error: 'Subscriber not found' }), { 
+                            status: 404, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    if (error.code === '23505') {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: 'Email address already exists' 
+                        }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ success: true, data }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'DELETE' && id) {
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!uuidRegex.test(id)) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Invalid subscriber ID format' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+                
+                const { error } = await adminSupabase
+                    .from('email_subscribers')
+                    .delete()
+                    .eq('id', id);
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ success: true, message: 'Subscriber deleted successfully' }), { 
+                    headers: { 'Content-Type': 'application/json' } 
+                });
+            }
+            else if (method === 'PATCH' && pathSegments[1] === 'bulk') {
+                // Bulk update subscribers
+                const body = await request.json();
+                const { ids, is_active } = body;
+                
+                if (!Array.isArray(ids) || ids.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing or invalid ids array' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                if (typeof is_active !== 'boolean') {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'is_active must be a boolean' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                for (const id of ids) {
+                    if (!uuidRegex.test(id)) {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: `Invalid subscriber ID format: ${id}` 
+                        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                    }
+                }
+                
+                const { data, error } = await adminSupabase
+                    .from('email_subscribers')
+                    .update({ 
+                        is_active, 
+                        updated_at: new Date().toISOString() 
+                    })
+                    .in('id', ids)
+                    .select();
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ 
+                    success: true, 
+                    message: `${data.length} subscribers updated successfully`,
+                    data
+                }), { headers: { 'Content-Type': 'application/json' } });
+            }
+            else if (method === 'DELETE' && pathSegments[1] === 'bulk') {
+                // Bulk delete subscribers
+                const body = await request.json();
+                const { ids } = body;
+                
+                if (!Array.isArray(ids) || ids.length === 0) {
+                    return new Response(JSON.stringify({ 
+                        success: false, 
+                        error: 'Missing or invalid ids array' 
+                    }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                }
+
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                for (const id of ids) {
+                    if (!uuidRegex.test(id)) {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: `Invalid subscriber ID format: ${id}` 
+                        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                    }
+                }
+                
+                const { error } = await adminSupabase
+                    .from('email_subscribers')
+                    .delete()
+                    .in('id', ids);
+                    
+                if (error) {
+                    return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                        status: 400, headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                
+                return new Response(JSON.stringify({ 
+                    success: true, 
+                    message: 'Subscribers deleted successfully'
+                }), { headers: { 'Content-Type': 'application/json' } });
+            }
+        }
+        else if (resource === 'email_send_log') {
+            // Email send log management
+            if (method === 'GET') {
+                // Handle stats endpoint
+                if (pathSegments[1] === 'stats') {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    
+                    const { count: totalSent, error: totalError } = await adminSupabase
+                        .from('email_send_log')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('status', 'sent')
+                        .gte('sent_at', thirtyDaysAgo.toISOString());
+
+                    if (totalError) {
+                        return new Response(JSON.stringify({ success: false, error: totalError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    const { count: totalFailed, error: failedError } = await adminSupabase
+                        .from('email_send_log')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('status', 'failed')
+                        .gte('sent_at', thirtyDaysAgo.toISOString());
+
+                    if (failedError) {
+                        return new Response(JSON.stringify({ success: false, error: failedError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    const { data: lastSuccess, error: lastSuccessError } = await adminSupabase
+                        .from('email_send_log')
+                        .select('sent_at, recipient_count')
+                        .eq('status', 'sent')
+                        .eq('email_type', 'weekly')
+                        .order('sent_at', { ascending: false })
+                        .limit(1);
+
+                    if (lastSuccessError) {
+                        return new Response(JSON.stringify({ success: false, error: lastSuccessError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    
+                    const { count: recentActivity, error: recentError } = await adminSupabase
+                        .from('email_send_log')
+                        .select('*', { count: 'exact', head: true })
+                        .gte('sent_at', sevenDaysAgo.toISOString());
+
+                    if (recentError) {
+                        return new Response(JSON.stringify({ success: false, error: recentError.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+
+                    return new Response(JSON.stringify({
+                        success: true,
+                        data: {
+                            total_sent_30d: totalSent || 0,
+                            total_failed_30d: totalFailed || 0,
+                            last_successful_send: lastSuccess && lastSuccess.length > 0 ? {
+                                sent_at: lastSuccess[0].sent_at,
+                                recipient_count: lastSuccess[0].recipient_count
+                            } : null,
+                            recent_activity_7d: recentActivity || 0
+                        }
+                    }), { headers: { 'Content-Type': 'application/json' } });
+                }
+                // Handle single log entry by ID
+                else if (id) {
+                    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                    if (!uuidRegex.test(id)) {
+                        return new Response(JSON.stringify({ 
+                            success: false, 
+                            error: 'Invalid email log ID format' 
+                        }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+                    }
+                    
+                    const { data, error } = await adminSupabase
+                        .from('email_send_log')
+                        .select('*')
+                        .eq('id', id)
+                        .single();
+                        
+                    if (error) {
+                        if (error.code === 'PGRST116') {
+                            return new Response(JSON.stringify({ success: false, error: 'Email log entry not found' }), { 
+                                status: 404, headers: { 'Content-Type': 'application/json' } 
+                            });
+                        }
+                        return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    return new Response(JSON.stringify({ success: true, data }), { 
+                        headers: { 'Content-Type': 'application/json' } 
+                    });
+                }
+                // Handle list with filtering and pagination
+                else {
+                    const status = url.searchParams.get('status');
+                    const email_type = url.searchParams.get('email_type') || 'weekly';
+                    const page = parseInt(url.searchParams.get('page') || '1', 10);
+                    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+                    const order = url.searchParams.get('order') || 'sent_at.desc';
+
+                    let query = adminSupabase
+                        .from('email_send_log')
+                        .select('*', { count: 'exact' });
+
+                    if (status && ['sent', 'failed', 'pending'].includes(status)) {
+                        query = query.eq('status', status);
+                    }
+
+                    if (email_type) {
+                        query = query.eq('email_type', email_type);
+                    }
+
+                    const validOrders = [
+                        'sent_at.desc', 'sent_at.asc',
+                        'status.desc', 'status.asc',
+                        'email_type.desc', 'email_type.asc'
+                    ];
+                    
+                    if (validOrders.includes(order)) {
+                        const [field, direction] = order.split('.');
+                        query = query.order(field, { ascending: direction === 'asc' });
+                    } else {
+                        query = query.order('sent_at', { ascending: false });
+                    }
+
+                    if (page > 0 && limit > 0) {
+                        const from = (page - 1) * limit;
+                        const to = from + limit - 1;
+                        query = query.range(from, to);
+                    }
+
+                    const { data, error, count } = await query;
+                        
+                    if (error) {
+                        return new Response(JSON.stringify({ success: false, error: error.message }), { 
+                            status: 400, headers: { 'Content-Type': 'application/json' } 
+                        });
+                    }
+                    
+                    return new Response(JSON.stringify({ 
+                        success: true, 
+                        data,
+                        pagination: {
+                            page: page || 1,
+                            limit: limit || 20,
+                            total: count,
+                            pages: Math.ceil((count || 0) / (limit || 20))
+                        }
+                    }), { headers: { 'Content-Type': 'application/json' } });
+                }
+            }
+        }
 
         // Fallback for unhandled routes within /api/admin
         return new Response(JSON.stringify({ success: false, error: 'Admin route not found' }), {
