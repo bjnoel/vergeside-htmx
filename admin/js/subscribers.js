@@ -824,7 +824,8 @@ async function sendTestEmail() {
     
     try {
         const token = adminAuth.getAccessToken();
-        const response = await fetch(`${window.ENV_CONFIG.SUPABASE_URL}/functions/v1/test-email`, {
+        const supabaseUrl = window.ENV?.SUPABASE_URL || CONFIG?.SUPABASE_URL || 'https://wihegqwakwwvckxrivem.supabase.co';
+        const response = await fetch(`${supabaseUrl}/functions/v1/test-email`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
