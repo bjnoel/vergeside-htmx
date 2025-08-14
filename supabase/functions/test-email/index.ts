@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.6'
 import { Resend } from 'https://esm.sh/resend@2.0.0'
+import * as jose from 'https://esm.sh/jose@5.2.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,14 +19,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const resendApiKey = Deno.env.get('RESEND_API_KEY')!
-    
-    // Initialize clients
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    })
+    const auth0Domain = Deno.env.get('AUTH0_DOMAIN')
+    const auth0Audience = Deno.env.get('AUTH0_AUDIENCE')
     
     // Get the authorization header
     const authHeader = req.headers.get('Authorization')
@@ -33,12 +28,51 @@ serve(async (req) => {
       throw new Error('No authorization header')
     }
     
-    // Verify the user is authenticated
+    // Verify the user is authenticated with Auth0
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    let user: any = null
     
-    if (authError || !user) {
-      throw new Error('Unauthorized')
+    // Validate Auth0 token
+    if (auth0Domain && auth0Audience) {
+      try {
+        console.log('Validating Auth0 token...')
+        const JWKS = jose.createRemoteJWKSet(new URL(`https://${auth0Domain}/.well-known/jwks.json`))
+        
+        const { payload } = await jose.jwtVerify(token, JWKS, {
+          issuer: `https://${auth0Domain}/`,
+          audience: auth0Audience,
+          algorithms: ['RS256']
+        })
+        
+        user = {
+          email: payload.email || payload.sub,
+          sub: payload.sub
+        }
+        console.log(`Auth0 token validated successfully for: ${user.email}`)
+      } catch (authError) {
+        console.error('Auth0 validation error:', authError.message)
+        throw new Error('Unauthorized: Invalid Auth0 token')
+      }
+    } else {
+      // Fallback: Try Supabase auth (for backward compatibility)
+      console.log('AUTH0_DOMAIN/AUTH0_AUDIENCE not set, trying Supabase auth...')
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      })
+      
+      const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token)
+      
+      if (authError || !supabaseUser) {
+        throw new Error('Unauthorized: Invalid token')
+      }
+      user = supabaseUser
+    }
+    
+    if (!user) {
+      throw new Error('Unauthorized: No valid user found')
     }
     
     const resend = new Resend(resendApiKey)
