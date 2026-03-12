@@ -24,54 +24,102 @@
     <div class="container">
         <main role="main" class="pb-3">
             <h1>Contact Us</h1>
-            
+
             <div class="row mt-4">
                 <div class="col-md-6">
-                    <p>If you have any questions, feedback, or notice incorrect information on the site, please let us know using the form below.</p>
-                    
-                    <!-- Formspree Contact Form -->
-                    <form action="https://formspree.io/f/xqapbevg" method="POST">
+                    <!-- Topic Selector -->
+                    <p class="mb-3"><strong>What's your question about?</strong></p>
+
+                    <div class="mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-dates" value="site" data-subject="Incorrect dates on the site">
+                            <label class="form-check-label" for="topic-dates">Incorrect dates on the site</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-council" value="site" data-subject="Add a missing council">
+                            <label class="form-check-label" for="topic-council">Add a missing council</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-bug" value="site" data-subject="Bug or technical issue">
+                            <label class="form-check-label" for="topic-bug">Bug or technical issue</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-feedback" value="site" data-subject="Feature suggestion or other feedback">
+                            <label class="form-check-label" for="topic-feedback">Feature suggestion or other feedback</label>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-items" value="council">
+                            <label class="form-check-label" for="topic-items">What items can I put out for collection?</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-schedule" value="council">
+                            <label class="form-check-label" for="topic-schedule">When is my pickup / collection schedule?</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="topic" id="topic-other-council" value="council">
+                            <label class="form-check-label" for="topic-other-council">Other question about my council's service</label>
+                        </div>
+                    </div>
+
+                    <!-- Council Redirect Message -->
+                    <div id="council-redirect" class="d-none">
+                        <div class="alert alert-info">
+                            <h5 class="alert-heading">Your local council can help with that!</h5>
+                            <p>They set the rules and schedules for bulk waste collection in your area. We just list the dates.</p>
+                            <a href="/council" class="btn btn-primary">Find Your Council</a>
+                            <hr>
+                            <p class="mb-0 small">If you still need help after checking with your council, come back and select a different topic above.</p>
+                        </div>
+                    </div>
+
+                    <!-- Formspree Contact Form (hidden until site topic selected) -->
+                    <form id="contact-form" class="d-none" action="https://formspree.io/f/xqapbevg" method="POST">
                         <div class="mb-3">
                             <label for="name" class="form-label">Your Name</label>
                             <input type="text" class="form-control" id="name" name="name" required>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="email" class="form-label">Your Email</label>
                             <input type="email" class="form-control" id="email" name="email" required>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="subject" class="form-label">Subject</label>
                             <input type="text" class="form-control" id="subject" name="subject" required>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="message" class="form-label">Message</label>
                             <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
                         </div>
-                        
+
                         <!-- Anti-spam honeypot field -->
                         <input type="text" name="_gotcha" style="display:none">
-                        
+
                         <button type="submit" class="btn btn-primary">Send Message</button>
                     </form>
                 </div>
-                
+
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
-                            <h5>Contact Information</h5>
+                            <h5>What This Form Is For</h5>
                         </div>
                         <div class="card-body">
-                            <h5 class="mt-4">How You Can Help</h5>
-                            <ul>
-                                <li>Correcting information about pickup dates</li>
-                                <li>Adding new councils to the database</li>
-                                <li>Reporting technical issues with the site</li>
-                                <li>Suggesting new features</li>
-                                <li>General inquiries</li>
+                            <ul class="mb-3">
+                                <li>Correcting pickup dates or information</li>
+                                <li>Adding a council we're missing</li>
+                                <li>Reporting bugs or broken pages</li>
+                                <li>Suggesting features</li>
                             </ul>
+                            <h6>Questions about your collection?</h6>
+                            <p class="mb-0">We don't run the pickups. Your <a href="/council">local council</a> sets the rules, schedules, and accepted items. Contact them directly for the fastest answer.</p>
                         </div>
                     </div>
                 </div>
@@ -96,5 +144,28 @@
     <!-- Environment Configuration -->
     <script src="js/env-config.js"></script>
     <script src="js/site.js"></script>
+
+    <!-- Topic Selector Logic -->
+    <script>
+    (function() {
+        var form = document.getElementById('contact-form');
+        var redirect = document.getElementById('council-redirect');
+        var subjectField = document.getElementById('subject');
+        var radios = document.querySelectorAll('input[name="topic"]');
+
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (this.value === 'site') {
+                    form.classList.remove('d-none');
+                    redirect.classList.add('d-none');
+                    subjectField.value = this.getAttribute('data-subject');
+                } else {
+                    form.classList.add('d-none');
+                    redirect.classList.remove('d-none');
+                }
+            });
+        });
+    })();
+    </script>
 </body>
 </html>
