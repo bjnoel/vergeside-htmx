@@ -655,7 +655,7 @@ export async function onRequest(context) {
                 if (geoData && geoData.address) {
                     const a = geoData.address;
                     const parts = [
-                        a.house_number,
+                        a.house_number || '1',
                         a.road,
                         a.suburb || a.town || a.city_district,
                         a.postcode
