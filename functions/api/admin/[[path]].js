@@ -367,6 +367,7 @@ export async function onRequest(context) {
 
             // --- Generate map image: POST /api/admin/area/:id/generate-map ---
             if (subAction === 'generate-map' && method === 'POST' && id) {
+              try {
                 const areaId = parseInt(id, 10);
                 if (isNaN(areaId)) {
                     return new Response(JSON.stringify({ success: false, error: 'Invalid area ID' }), {
@@ -381,7 +382,11 @@ export async function onRequest(context) {
                     .eq('area_id', areaId)
                     .eq('active', true);
 
-                if (polyError) throw polyError;
+                if (polyError) {
+                    return new Response(JSON.stringify({ success: false, error: `DB error: ${polyError.message}` }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
 
                 if (!polygons || polygons.length === 0) {
                     return new Response(JSON.stringify({ success: false, error: 'No active polygons found for this area' }), {
@@ -461,7 +466,7 @@ export async function onRequest(context) {
                     const errorText = await mapResponse.text();
                     console.error('Mapbox API error:', mapResponse.status, errorText);
                     return new Response(JSON.stringify({ success: false, error: `Mapbox error (${mapResponse.status}): ${errorText.substring(0, 200)}` }), {
-                        status: 502, headers: { 'Content-Type': 'application/json' }
+                        status: 500, headers: { 'Content-Type': 'application/json' }
                     });
                 }
 
@@ -476,7 +481,7 @@ export async function onRequest(context) {
 
                 if (uploadError) {
                     console.error('Storage upload error:', uploadError);
-                    return new Response(JSON.stringify({ success: false, error: uploadError.message }), {
+                    return new Response(JSON.stringify({ success: false, error: `Upload error: ${uploadError.message}` }), {
                         status: 500, headers: { 'Content-Type': 'application/json' }
                     });
                 }
@@ -485,6 +490,12 @@ export async function onRequest(context) {
                 return new Response(JSON.stringify({ success: true, data: { image_url: imageUrl } }), {
                     status: 201, headers: { 'Content-Type': 'application/json' }
                 });
+              } catch (genError) {
+                console.error('Generate map error:', genError);
+                return new Response(JSON.stringify({ success: false, error: `Generate failed: ${genError.message}` }), {
+                    status: 500, headers: { 'Content-Type': 'application/json' }
+                });
+              }
             }
 
             // --- Upload custom map image: POST /api/admin/area/:id/upload-map ---
