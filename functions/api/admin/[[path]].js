@@ -391,20 +391,29 @@ export async function onRequest(context) {
 
                 // Convert coordinates to GeoJSON (matches logic in js/mapbox-controller.js:204-238)
                 function parseCoordinates(coordinateString) {
+                    let ring;
                     try {
                         const jsonPaths = JSON.parse(coordinateString);
-                        return [jsonPaths.map(coord => [coord.lng, coord.lat])];
+                        ring = jsonPaths.map(coord => [coord.lng, coord.lat]);
                     } catch (e) {
-                        return [
-                            coordinateString.trim().split(' ').map(coord => {
-                                const parts = coord.split(',');
-                                if (parts.length >= 2) {
-                                    return [parseFloat(parts[0]), parseFloat(parts[1])];
-                                }
-                                return null;
-                            }).filter(point => point !== null)
-                        ];
+                        // KML format: "lng,lat,alt lng,lat,alt ..." (may have newlines/indentation)
+                        ring = coordinateString.trim().split(/\s+/).map(coord => {
+                            const parts = coord.split(',');
+                            if (parts.length >= 2) {
+                                return [parseFloat(parts[0]), parseFloat(parts[1])];
+                            }
+                            return null;
+                        }).filter(point => point !== null);
                     }
+                    // GeoJSON requires closed rings (first point == last point)
+                    if (ring.length > 0) {
+                        const first = ring[0];
+                        const last = ring[ring.length - 1];
+                        if (first[0] !== last[0] || first[1] !== last[1]) {
+                            ring.push([first[0], first[1]]);
+                        }
+                    }
+                    return [ring];
                 }
 
                 const geojson = {
@@ -450,8 +459,8 @@ export async function onRequest(context) {
 
                 if (!mapResponse.ok) {
                     const errorText = await mapResponse.text();
-                    console.error('Mapbox API error:', errorText);
-                    return new Response(JSON.stringify({ success: false, error: 'Failed to generate map image' }), {
+                    console.error('Mapbox API error:', mapResponse.status, errorText);
+                    return new Response(JSON.stringify({ success: false, error: `Mapbox error (${mapResponse.status}): ${errorText.substring(0, 200)}` }), {
                         status: 502, headers: { 'Content-Type': 'application/json' }
                     });
                 }

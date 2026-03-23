@@ -570,7 +570,13 @@
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
-                    const result = await response.json();
+                    let result;
+                    const responseText = await response.text();
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+                    }
                     if (!response.ok) {
                         throw new Error(result.error || 'Failed to generate map');
                     }
