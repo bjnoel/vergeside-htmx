@@ -460,7 +460,7 @@ export async function onRequest(context) {
                     return simplified;
                 }
 
-                const mapboxToken = env.MAPBOX_TOKEN;
+                const mapboxToken = env.MAPBOX_SERVER_TOKEN || env.MAPBOX_TOKEN;
                 if (!mapboxToken) {
                     return new Response(JSON.stringify({ success: false, error: 'Mapbox token not configured' }), {
                         status: 500, headers: { 'Content-Type': 'application/json' }
