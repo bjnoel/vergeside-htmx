@@ -30,8 +30,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const defaultEndOffset = getConfigValue('DEFAULT_DATE_RANGE', { END_OFFSET: 28 }).END_OFFSET;
         const dateFormat = getConfigValue('DEFAULT_DATE_FORMAT', 'YYYY-MM-DD');
         
-        const today = moment().utcOffset(timezone);
-        const endDate = moment().utcOffset(timezone).add(defaultEndOffset, 'days');
+        const today = moment().utcOffset(timezone).isoWeekday(1); // Monday of current week
+        const endDate = moment().utcOffset(timezone).isoWeekday(1).add(defaultEndOffset, 'days');
         
         // Remove any existing daterangepicker instance
         if ($(daterangePicker).data('daterangepicker')) {
@@ -47,10 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 format: 'MMMM D, YYYY'
             },
             ranges: {
-                'Next Week': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(7, 'days')],
-                'Next 2 Weeks': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(14, 'days')],
-                'Next Month': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(1, 'month')],
-                'Next 2 Months': [moment().utcOffset(timezone), moment().utcOffset(timezone).add(2, 'months')]
+                'This Week': [moment().utcOffset(timezone).isoWeekday(1), moment().utcOffset(timezone).isoWeekday(7)],
+                'Next 2 Weeks': [moment().utcOffset(timezone).isoWeekday(1), moment().utcOffset(timezone).isoWeekday(1).add(14, 'days')],
+                'Next Month': [moment().utcOffset(timezone).isoWeekday(1), moment().utcOffset(timezone).isoWeekday(1).add(1, 'month')],
+                'Next 2 Months': [moment().utcOffset(timezone).isoWeekday(1), moment().utcOffset(timezone).isoWeekday(1).add(2, 'months')]
             }
         });
         

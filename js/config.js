@@ -60,9 +60,9 @@ const CONFIG = {
         DEFAULT: '#808080' // Gray for unknown or past dates
     },
     
-    // Initial Date Range (4 weeks by default)
+    // Initial Date Range (4 weeks from Monday of current week)
     DEFAULT_DATE_RANGE: {
-        START_OFFSET: 0, // Days from today
-        END_OFFSET: 28 // Days from today
+        START_OFFSET: 0, // Start is always Monday of current week (set in site.js)
+        END_OFFSET: 28 // Days from start
     }
 };

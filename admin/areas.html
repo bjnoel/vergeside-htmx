@@ -714,25 +714,16 @@
                 const container = isEdit ?
                     document.getElementById('edit-sample-address-container') :
                     document.getElementById('area-sample-address-container');
-                const input = isEdit ?
-                    document.getElementById('edit-sample-address') :
-                    document.getElementById('area-sample-address');
 
-                if (!container || !input) return;
+                if (!container) return;
 
-                const selectedCouncil = councilsData.find(c => c.id == councilId);
-                const hasMaps = selectedCouncil?.has_maps === true;
+                // Always show the sample address field
+                container.style.display = 'block';
 
-                if (hasMaps) {
-                    container.style.display = 'none';
-                    input.value = '';
-                } else {
-                    container.style.display = 'block';
-                    // Invalidate map size when showing (may have been hidden)
-                    const picker = isEdit ? editPicker : addPicker;
-                    if (picker && picker.map) {
-                        setTimeout(() => picker.map.invalidateSize(), 100);
-                    }
+                // Invalidate map size when showing (may have been hidden)
+                const picker = isEdit ? editPicker : addPicker;
+                if (picker && picker.map) {
+                    setTimeout(() => picker.map.invalidateSize(), 100);
                 }
             }
 
