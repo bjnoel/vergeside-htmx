@@ -456,11 +456,14 @@
                                 <td>${area.council ? area.council.name : 'N/A'}</td>
                                 <td>${area.name}</td>
                                 <td>
-                                    <span class="text-muted small">${area.sample_address || 'Not set'}</span>
-                                    ${area.sample_address && area.council && area.council.bulk_waste_url ?
-                                        ` <button class="btn btn-sm btn-outline-info" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
-                                            <i class="bi bi-search"></i>
-                                        </button>` : ''}
+                                    <div class="d-flex align-items-center gap-1">
+                                        <input type="text" class="form-control form-control-sm sample-addr-input" data-id="${area.id}" data-council-id="${area.council_id}"
+                                            value="${(area.sample_address || '').replace(/"/g, '&quot;')}" placeholder="Not set" style="min-width:160px; font-size:0.8rem;">
+                                        ${area.sample_address && area.council && area.council.bulk_waste_url ?
+                                            `<button class="btn btn-sm btn-outline-info" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
+                                                <i class="bi bi-search"></i>
+                                            </button>` : ''}
+                                    </div>
                                 </td>
                                 <td class="text-nowrap">
                                     <a href="/admin/area_polygons?area_id=${area.id}" class="btn btn-sm btn-outline-secondary">
@@ -469,7 +472,12 @@
                                 </td>
                                 <td class="text-nowrap text-center" id="map-cell-${area.id}">
                                     ${hasImage
-                                        ? `<img src="/api/area/${area.id}/map" width="48" height="32" class="border rounded" style="cursor:pointer; object-fit:cover;" onclick="window.open('/api/area/${area.id}/map','_blank')" />`
+                                        ? `<div class="d-flex align-items-center gap-1 justify-content-center">
+                                               <img src="/api/area/${area.id}/map" width="48" height="32" class="border rounded" style="cursor:pointer; object-fit:cover;" onclick="window.open('/api/area/${area.id}/map','_blank')" />
+                                               <button class="btn btn-sm btn-outline-secondary regenerate-map-btn" data-id="${area.id}" title="Regenerate">
+                                                   <i class="bi bi-arrow-clockwise"></i>
+                                               </button>
+                                           </div>`
                                         : `<button class="btn btn-sm btn-outline-primary generate-map-btn" data-id="${area.id}">
                                                <i class="bi bi-image"></i> Generate
                                            </button>`
@@ -506,6 +514,27 @@
                             btn.addEventListener('click', (e) => {
                                 const id = e.target.closest('button').getAttribute('data-id');
                                 generateMap(id);
+                            });
+                        });
+
+                        document.querySelectorAll('.regenerate-map-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const id = e.target.closest('button').getAttribute('data-id');
+                                generateMap(id);
+                            });
+                        });
+
+                        // Inline sample address editing — save on blur or Enter
+                        document.querySelectorAll('.sample-addr-input').forEach(input => {
+                            const origVal = input.value;
+                            function saveIfChanged() {
+                                const newVal = input.value.trim();
+                                if (newVal === origVal) return;
+                                saveSampleAddress(input.getAttribute('data-id'), input.getAttribute('data-council-id'), newVal);
+                            }
+                            input.addEventListener('blur', saveIfChanged);
+                            input.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
                             });
                         });
 
@@ -597,6 +626,44 @@
                         </button>`;
                         cell.querySelector('.generate-map-btn').addEventListener('click', () => generateMap(areaId));
                     }
+                }
+            }
+
+            // Save sample address inline
+            async function saveSampleAddress(areaId, councilId, newAddress) {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+
+                    // We need the area name to do a PUT, so fetch it first
+                    const getResp = await fetch(`/api/admin/area/${areaId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const getResult = await getResp.json();
+                    if (!getResp.ok) throw new Error(getResult.error);
+
+                    const area = getResult.data;
+                    const response = await fetch(`/api/admin/area/${areaId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            name: area.name,
+                            council_id: area.council_id,
+                            sample_address: newAddress || null
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.error || 'Error saving');
+                    }
+                    showToast('Sample address updated', 'success');
+                } catch (error) {
+                    console.error('Error saving sample address:', error);
+                    showToast('Error saving sample address', 'danger');
                 }
             }
 

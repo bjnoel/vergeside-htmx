@@ -814,8 +814,9 @@
                     }
                     
                     showToast('Polygon added successfully', 'success');
+                    promptRegenerateMap();
                     polygonForm.reset();
-                    
+
                     // Remove preview polygon
                     if (previewPolygon) {
                         if (map.getLayer('preview-polygon-outline')) {
@@ -917,7 +918,8 @@
                     }
                     
                     showToast('Polygon updated successfully', 'success');
-                    
+                    promptRegenerateMap();
+
                     // Remove preview polygon
                     if (previewPolygon) {
                         if (map.getLayer('preview-polygon-outline')) {
@@ -968,8 +970,9 @@
                     }
                     
                     showToast('Polygon deleted successfully', 'success');
+                    promptRegenerateMap();
                     deletePolygonId = null;
-                    
+
                     // Reload polygons
                     await loadPolygons();
                 } catch (error) {
@@ -980,6 +983,37 @@
                 }
             }
             
+            // Prompt to regenerate map image after polygon changes
+            function promptRegenerateMap() {
+                // Use setTimeout so the toast from the save/delete shows first
+                setTimeout(async () => {
+                    if (confirm('Polygons have changed. Regenerate the map image for emails?\n\n(Click OK to regenerate, Cancel to skip)')) {
+                        showLoading();
+                        try {
+                            const token = adminAuth.getAccessToken();
+                            if (!token) throw new Error('Not authenticated');
+
+                            const response = await fetch(`/api/admin/area/${areaId}/generate-map`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+
+                            let result;
+                            const text = await response.text();
+                            try { result = JSON.parse(text); } catch (e) { throw new Error(text.substring(0, 100)); }
+
+                            if (!response.ok) throw new Error(result.error || 'Failed to generate map');
+                            showToast('Map image regenerated successfully', 'success');
+                        } catch (error) {
+                            console.error('Error regenerating map:', error);
+                            showToast(`Error regenerating map: ${error.message}`, 'danger');
+                        } finally {
+                            hideLoading();
+                        }
+                    }
+                }, 300);
+            }
+
             // Toggle form visibility
             function toggleFormVisibility() {
                 if (polygonFormContainer.style.display === 'none') {
@@ -1072,6 +1106,8 @@
             });
     } // Closing brace for initApp added here
     </script>
-    
+
     <!-- Mapbox API -->
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+</body>
+</html>
