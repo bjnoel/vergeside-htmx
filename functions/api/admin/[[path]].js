@@ -447,7 +447,19 @@ export async function onRequest(context) {
                     });
                 }
 
-                // Call Mapbox Static Images API (POST for large GeoJSON payloads)
+                // Simplify polygon rings if needed to fit Mapbox GET URL limit (~8KB)
+                function simplifyRing(ring, maxPoints) {
+                    if (ring.length <= maxPoints) return ring;
+                    const step = (ring.length - 1) / (maxPoints - 1);
+                    const simplified = [];
+                    for (let i = 0; i < maxPoints - 1; i++) {
+                        simplified.push(ring[Math.round(i * step)]);
+                    }
+                    // Always keep the closing point
+                    simplified.push(ring[ring.length - 1]);
+                    return simplified;
+                }
+
                 const mapboxToken = env.MAPBOX_TOKEN;
                 if (!mapboxToken) {
                     return new Response(JSON.stringify({ success: false, error: 'Mapbox token not configured' }), {
@@ -455,7 +467,19 @@ export async function onRequest(context) {
                     });
                 }
 
-                const geojsonEncoded = encodeURIComponent(JSON.stringify(geojson));
+                // Try with full coordinates, simplify if URL too long
+                let geojsonStr = JSON.stringify(geojson);
+                if (encodeURIComponent(geojsonStr).length > 6000) {
+                    // Simplify each polygon ring to ~80 points max
+                    for (const feature of geojson.features) {
+                        feature.geometry.coordinates = feature.geometry.coordinates.map(
+                            ring => simplifyRing(ring, 80)
+                        );
+                    }
+                    geojsonStr = JSON.stringify(geojson);
+                }
+
+                const geojsonEncoded = encodeURIComponent(geojsonStr);
                 const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${geojsonEncoded})/auto/600x400?padding=20&access_token=${mapboxToken}`;
                 const mapResponse = await fetch(mapboxUrl);
 
