@@ -649,13 +649,12 @@ export async function onRequest(context) {
                     const geoData = await geoResponse.json();
                     if (geoData && geoData.address) {
                         const a = geoData.address;
-                        const number = a.house_number || '1';
                         const road = a.road;
                         const suburb = a.suburb || a.town || a.city_district;
                         if (road && suburb) {
-                            address = `${number} ${road}, ${suburb}`;
+                            address = `${road}, ${suburb}`;
                         } else if (road) {
-                            address = `${number} ${road}`;
+                            address = road;
                         }
                     }
                 }
