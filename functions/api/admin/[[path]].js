@@ -638,32 +638,47 @@ export async function onRequest(context) {
                     lng: allPoints.reduce((sum, p) => sum + p.lng, 0) / allPoints.length
                 };
 
-                // Reverse geocode via Nominatim
-                const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${centroid.lat}&lon=${centroid.lng}&addressdetails=1&zoom=18`;
-                const geoResponse = await fetch(nominatimUrl, {
-                    headers: { 'User-Agent': 'Vergeside Admin (vergeside.com.au)' }
-                });
+                // Reverse geocode via Nominatim — try centroid first, then nearby
+                // offsets (~100m) to find an address with a real house number
+                const nominatimHeaders = { 'User-Agent': 'Vergeside Admin (vergeside.com.au)' };
+                const offset = 0.001; // ~111m
+                const tryPoints = [
+                    [0, 0],
+                    [offset, 0], [-offset, 0],
+                    [0, offset], [0, -offset],
+                ];
 
-                if (!geoResponse.ok) {
-                    return new Response(JSON.stringify({ success: false, error: `Nominatim error (${geoResponse.status})` }), {
-                        status: 500, headers: { 'Content-Type': 'application/json' }
-                    });
-                }
-
-                const geoData = await geoResponse.json();
                 let address = '';
-                if (geoData && geoData.address) {
-                    const a = geoData.address;
-                    const parts = [
-                        a.house_number || '1',
-                        a.road,
-                        a.suburb || a.town || a.city_district,
-                        a.postcode
-                    ].filter(Boolean);
-                    address = parts.join(' ');
-                } else if (geoData && geoData.display_name) {
-                    address = geoData.display_name;
+                let fallbackAddress = ''; // road+suburb without house number
+
+                for (const [latOff, lngOff] of tryPoints) {
+                    const lat = centroid.lat + latOff;
+                    const lng = centroid.lng + lngOff;
+                    const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`;
+
+                    const geoResponse = await fetch(nominatimUrl, { headers: nominatimHeaders });
+                    if (!geoResponse.ok) continue;
+
+                    const geoData = await geoResponse.json();
+                    if (geoData && geoData.address) {
+                        const a = geoData.address;
+                        if (a.house_number && a.road) {
+                            // Found a real address with house number
+                            address = [a.house_number, a.road, a.suburb || a.town || a.city_district, a.postcode].filter(Boolean).join(' ');
+                            break;
+                        }
+                        // Keep first road-only result as fallback
+                        if (!fallbackAddress && a.road) {
+                            fallbackAddress = [a.road, a.suburb || a.town || a.city_district, a.postcode].filter(Boolean).join(' ');
+                        }
+                    }
+
+                    // Nominatim rate limit: 1 request/second
+                    await new Promise(r => setTimeout(r, 1100));
                 }
+
+                // Use fallback if no house number found
+                if (!address) address = fallbackAddress;
 
                 if (!address) {
                     return new Response(JSON.stringify({ success: false, error: 'Could not resolve address from centroid' }), {
