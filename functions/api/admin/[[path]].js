@@ -455,12 +455,9 @@ export async function onRequest(context) {
                     });
                 }
 
-                const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/auto/600x400?padding=20&access_token=${mapboxToken}`;
-                const mapResponse = await fetch(mapboxUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(geojson)
-                });
+                const geojsonEncoded = encodeURIComponent(JSON.stringify(geojson));
+                const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${geojsonEncoded})/auto/600x400?padding=20&access_token=${mapboxToken}`;
+                const mapResponse = await fetch(mapboxUrl);
 
                 if (!mapResponse.ok) {
                     const errorText = await mapResponse.text();
