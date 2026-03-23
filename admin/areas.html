@@ -97,7 +97,7 @@
 
     <div class="container">
         <!-- Area Form -->
-        <div class="card mb-4">
+        <div class="card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Add New Area</h5>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-form-btn">
@@ -157,15 +157,15 @@
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover">
+                    <table class="table table-striped table-hover table-sm align-middle">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th style="width: 50px;">ID</th>
                                 <th>Council</th>
                                 <th>Name</th>
                                 <th>Sample Address</th>
-                                <th>Polygons</th>
-                                <th>Actions</th>
+                                <th class="text-nowrap">Polygons</th>
+                                <th class="text-nowrap">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="areas-table">
@@ -450,18 +450,18 @@
                                 <td>${area.name}</td>
                                 <td>
                                     <span class="text-muted small">${area.sample_address || 'Not set'}</span>
-                                    ${area.sample_address && area.council && area.council.bulk_waste_url ? 
-                                        `<br><button class="btn btn-sm btn-outline-info mt-1" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
-                                            <i class="bi bi-search"></i> Lookup
+                                    ${area.sample_address && area.council && area.council.bulk_waste_url ?
+                                        ` <button class="btn btn-sm btn-outline-info" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
+                                            <i class="bi bi-search"></i>
                                         </button>` : ''}
                                 </td>
-                                <td>
+                                <td class="text-nowrap">
                                     <a href="/admin/area_polygons?area_id=${area.id}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-geo-alt"></i> Edit Polygons
+                                        <i class="bi bi-geo-alt"></i> Polygons
                                     </a>
                                 </td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary edit-btn me-2" data-id="${area.id}">
+                                <td class="text-nowrap">
+                                    <button class="btn btn-sm btn-primary edit-btn me-1" data-id="${area.id}">
                                         Edit
                                     </button>
                                     <button class="btn btn-sm btn-danger delete-btn" data-id="${area.id}">
