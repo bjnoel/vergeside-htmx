@@ -8,6 +8,63 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/admin/css/admin.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        .location-picker { position: relative; }
+        .location-picker .map-container {
+            height: 250px;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+            z-index: 0;
+        }
+        .location-picker .address-search-wrap {
+            position: relative;
+        }
+        .location-picker .address-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .location-picker .address-suggestions .suggestion {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .location-picker .address-suggestions .suggestion:hover {
+            background-color: #e9ecef;
+        }
+        .location-picker .address-suggestions .suggestion:last-child {
+            border-bottom: none;
+        }
+        .location-picker .selected-address {
+            margin-top: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            background: #e9f5ff;
+            border: 1px solid #b8daff;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+        .location-picker .selected-address .clear-btn {
+            float: right;
+            cursor: pointer;
+            color: #6c757d;
+        }
+        .location-picker .selected-address .clear-btn:hover {
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -61,10 +118,21 @@
                             <label for="area-name" class="form-label">Area Name*</label>
                             <input type="text" class="form-control" id="area-name" required>
                         </div>
-                        <div class="col-md-6 mb-3" id="area-sample-address-container">
-                            <label for="area-sample-address" class="form-label">Sample Address</label>
-                            <input type="text" class="form-control" id="area-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
-                            <div class="form-text">Address used for pickup lookups when council doesn't provide maps</div>
+                        <div class="col-12 mb-3" id="area-sample-address-container">
+                            <label class="form-label">Sample Address</label>
+                            <div class="form-text mb-2">Search or click the map to select an address for pickup lookups</div>
+                            <input type="hidden" id="area-sample-address">
+                            <div class="location-picker" id="add-location-picker">
+                                <div class="address-search-wrap">
+                                    <input type="text" class="form-control" id="add-address-search" placeholder="Search for an address in Perth..." autocomplete="off">
+                                    <div class="address-suggestions" id="add-suggestions"></div>
+                                </div>
+                                <div class="selected-address" id="add-selected-address">
+                                    <span class="clear-btn" title="Clear address">&times;</span>
+                                    <span class="address-text"></span>
+                                </div>
+                                <div class="map-container" id="add-map"></div>
+                            </div>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Add Area</button>
@@ -114,7 +182,7 @@
 
     <!-- Edit Area Modal -->
     <div class="modal fade" id="edit-area-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Area</h5>
@@ -135,9 +203,20 @@
                             <input type="text" class="form-control" id="edit-name" required>
                         </div>
                         <div class="mb-3" id="edit-sample-address-container">
-                            <label for="edit-sample-address" class="form-label">Sample Address</label>
-                            <input type="text" class="form-control" id="edit-sample-address" placeholder="e.g., 12 Wade Street GOSNELLS 6110">
-                            <div class="form-text">Address used for pickup lookups when council doesn't provide maps</div>
+                            <label class="form-label">Sample Address</label>
+                            <div class="form-text mb-2">Search or click the map to select an address for pickup lookups</div>
+                            <input type="hidden" id="edit-sample-address">
+                            <div class="location-picker" id="edit-location-picker">
+                                <div class="address-search-wrap">
+                                    <input type="text" class="form-control" id="edit-address-search" placeholder="Search for an address in Perth..." autocomplete="off">
+                                    <div class="address-suggestions" id="edit-suggestions"></div>
+                                </div>
+                                <div class="selected-address" id="edit-selected-address">
+                                    <span class="clear-btn" title="Clear address">&times;</span>
+                                    <span class="address-text"></span>
+                                </div>
+                                <div class="map-container" id="edit-map"></div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -185,6 +264,7 @@
     <script src="/js/env-config.js"></script>
     <script src="/js/config.js"></script>
     <script src="/admin/js/admin-auth.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Global functions that need to be accessible from onclick
         function showToast(message, type = 'info') {
@@ -458,6 +538,7 @@
                     }
                     showToast('Area added successfully', 'success');
                     areaForm.reset();
+                    addPicker.clearAddress();
                     loadAreas(currentSearchTerm); // Reload areas with current search term
                 } catch (error) {
                     console.error('Error adding area:', error);
@@ -601,6 +682,10 @@
                 if (areaFormContainer.style.display === 'none') {
                     areaFormContainer.style.display = 'block';
                     toggleFormBtn.textContent = 'Hide Form';
+                    // Map needs resize after becoming visible
+                    if (addPicker && addPicker.map) {
+                        setTimeout(() => addPicker.map.invalidateSize(), 100);
+                    }
                 } else {
                     areaFormContainer.style.display = 'none';
                     toggleFormBtn.textContent = 'Show Form';
@@ -626,25 +711,212 @@
 
             // Function to toggle sample address visibility based on council selection
             function toggleSampleAddressVisibility(councilId, isEdit = false) {
-                const container = isEdit ? 
-                    document.getElementById('edit-sample-address-container') : 
+                const container = isEdit ?
+                    document.getElementById('edit-sample-address-container') :
                     document.getElementById('area-sample-address-container');
-                const input = isEdit ? 
-                    document.getElementById('edit-sample-address') : 
+                const input = isEdit ?
+                    document.getElementById('edit-sample-address') :
                     document.getElementById('area-sample-address');
-                
+
                 if (!container || !input) return;
-                
+
                 const selectedCouncil = councilsData.find(c => c.id == councilId);
-                const hasMaps = selectedCouncil?.has_maps === true; // More explicit check
-                
+                const hasMaps = selectedCouncil?.has_maps === true;
+
                 if (hasMaps) {
                     container.style.display = 'none';
-                    input.value = ''; // Clear the value since it's not needed
+                    input.value = '';
                 } else {
                     container.style.display = 'block';
+                    // Invalidate map size when showing (may have been hidden)
+                    const picker = isEdit ? editPicker : addPicker;
+                    if (picker && picker.map) {
+                        setTimeout(() => picker.map.invalidateSize(), 100);
+                    }
                 }
             }
+
+            // ── Location Picker ──────────────────────────────────────
+            const PERTH_CENTER = [-31.9505, 115.8605];
+            const PERTH_BOUNDS = L.latLngBounds(
+                [-32.6, 115.4],  // SW corner
+                [-31.3, 116.4]   // NE corner
+            );
+            let searchTimeout = null;
+
+            function createLocationPicker(mapId, searchId, suggestionsId, selectedId, hiddenInputId) {
+                const map = L.map(mapId, {
+                    center: PERTH_CENTER,
+                    zoom: 11,
+                    maxBounds: PERTH_BOUNDS,
+                    minZoom: 9
+                });
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+
+                let marker = null;
+                const searchInput = document.getElementById(searchId);
+                const suggestionsEl = document.getElementById(suggestionsId);
+                const selectedEl = document.getElementById(selectedId);
+                const hiddenInput = document.getElementById(hiddenInputId);
+
+                function setMarker(lat, lng) {
+                    if (marker) {
+                        marker.setLatLng([lat, lng]);
+                    } else {
+                        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                        marker.on('dragend', function() {
+                            const pos = marker.getLatLng();
+                            reverseGeocode(pos.lat, pos.lng);
+                        });
+                    }
+                    map.setView([lat, lng], Math.max(map.getZoom(), 15));
+                }
+
+                function setAddress(displayAddress) {
+                    hiddenInput.value = displayAddress;
+                    selectedEl.querySelector('.address-text').textContent = displayAddress;
+                    selectedEl.style.display = 'block';
+                    searchInput.value = '';
+                    suggestionsEl.style.display = 'none';
+                }
+
+                function clearAddress() {
+                    hiddenInput.value = '';
+                    selectedEl.style.display = 'none';
+                    if (marker) {
+                        map.removeLayer(marker);
+                        marker = null;
+                    }
+                    map.setView(PERTH_CENTER, 11);
+                }
+
+                // Reverse geocode a lat/lng to an address
+                function reverseGeocode(lat, lng) {
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data && data.address) {
+                                const a = data.address;
+                                const parts = [
+                                    a.house_number,
+                                    a.road,
+                                    a.suburb || a.town || a.city_district,
+                                    a.postcode
+                                ].filter(Boolean);
+                                setAddress(parts.join(' '));
+                            } else if (data && data.display_name) {
+                                setAddress(data.display_name);
+                            }
+                        })
+                        .catch(err => console.error('Reverse geocode error:', err));
+                }
+
+                // Search Nominatim for addresses
+                function searchAddress(query) {
+                    if (query.length < 3) {
+                        suggestionsEl.style.display = 'none';
+                        return;
+                    }
+
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&viewbox=115.4,-32.6,116.4,-31.3&bounded=1&limit=6&addressdetails=1`;
+
+                    fetch(url)
+                        .then(r => r.json())
+                        .then(results => {
+                            suggestionsEl.innerHTML = '';
+                            if (results.length === 0) {
+                                suggestionsEl.innerHTML = '<div class="suggestion text-muted">No results found</div>';
+                                suggestionsEl.style.display = 'block';
+                                return;
+                            }
+                            results.forEach(result => {
+                                const div = document.createElement('div');
+                                div.className = 'suggestion';
+                                div.textContent = result.display_name;
+                                div.addEventListener('click', () => {
+                                    const lat = parseFloat(result.lat);
+                                    const lng = parseFloat(result.lon);
+                                    setMarker(lat, lng);
+                                    // Build a cleaner address from parts
+                                    const a = result.address || {};
+                                    const parts = [
+                                        a.house_number,
+                                        a.road,
+                                        a.suburb || a.town || a.city_district,
+                                        a.postcode
+                                    ].filter(Boolean);
+                                    setAddress(parts.length > 1 ? parts.join(' ') : result.display_name);
+                                });
+                                suggestionsEl.appendChild(div);
+                            });
+                            suggestionsEl.style.display = 'block';
+                        })
+                        .catch(err => console.error('Search error:', err));
+                }
+
+                // Debounced search on typing
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => searchAddress(searchInput.value.trim()), 350);
+                });
+
+                // Close suggestions on click outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#' + searchId) && !e.target.closest('#' + suggestionsId)) {
+                        suggestionsEl.style.display = 'none';
+                    }
+                });
+
+                // Click on map to place pin
+                map.on('click', function(e) {
+                    setMarker(e.latlng.lat, e.latlng.lng);
+                    reverseGeocode(e.latlng.lat, e.latlng.lng);
+                });
+
+                // Clear button
+                selectedEl.querySelector('.clear-btn').addEventListener('click', clearAddress);
+
+                return { map, setMarker, setAddress, clearAddress, marker: () => marker };
+            }
+
+            // Initialize add form map
+            const addPicker = createLocationPicker(
+                'add-map', 'add-address-search', 'add-suggestions',
+                'add-selected-address', 'area-sample-address'
+            );
+
+            // Initialize edit modal map (deferred until modal shown)
+            let editPicker = null;
+            document.getElementById('edit-area-modal').addEventListener('shown.bs.modal', function() {
+                if (!editPicker) {
+                    editPicker = createLocationPicker(
+                        'edit-map', 'edit-address-search', 'edit-suggestions',
+                        'edit-selected-address', 'edit-sample-address'
+                    );
+                } else {
+                    editPicker.map.invalidateSize();
+                }
+                // If there's an existing address, try to geocode it onto the map
+                const existingAddress = document.getElementById('edit-sample-address').value;
+                if (existingAddress) {
+                    editPicker.setAddress(existingAddress);
+                    // Forward-geocode the existing address to place a pin
+                    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(existingAddress)}&viewbox=115.4,-32.6,116.4,-31.3&bounded=1&limit=1`)
+                        .then(r => r.json())
+                        .then(results => {
+                            if (results.length > 0) {
+                                editPicker.setMarker(parseFloat(results[0].lat), parseFloat(results[0].lon));
+                            }
+                        })
+                        .catch(() => {});
+                } else {
+                    editPicker.clearAddress();
+                }
+            });
 
             // Event listeners
             logoutBtn.addEventListener('click', async () => {
@@ -675,39 +947,3 @@
     </script>
 </body>
 </html>
-</final_file_content>
-
-IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
-
-<environment_details>
-# VSCode Visible Files
-admin/areas.html
-
-# VSCode Open Tabs
-about.html
-contact.html
-.env
-functions/api/admin/[[path]].js
-package.json
-.dev.vars
-functions/api/auth/[[path]].js
-admin/js/admin-auth.js
-admin/areas.html
-admin/area_polygons.html
-js/config.js
-api/admin/area_polygon.js
-api/admin/area_polygon_routes.js
-api/admin/index.js
-server.js
-../vergeside/Vergeside/Controllers/ContactController.cs
-council.html
-donate.html
-faq.html
-index.html
-
-# Current Time
-4/3/2025, 11:48:10 AM (Australia/Perth, UTC+8:00)
-
-# Current Mode
-ACT MODE
-</environment_details>
