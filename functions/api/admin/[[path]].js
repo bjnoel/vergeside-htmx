@@ -344,7 +344,200 @@ export async function onRequest(context) {
             }
         }
         else if (resource === 'area') {
-            // TODO: Migrate logic from api/admin/area.js
+            const subAction = pathSegments[2]; // e.g., 'generate-map', 'upload-map'
+
+            // --- Bulk map status: GET /api/admin/area/map-status-bulk ---
+            if (id === 'map-status-bulk' && method === 'GET') {
+                const { data: files, error } = await adminSupabase.storage
+                    .from('area-maps')
+                    .list('', { limit: 1000 });
+
+                if (error) throw error;
+
+                const imageMap = {};
+                (files || []).forEach(f => {
+                    const match = f.name.match(/^(\d+)\.png$/);
+                    if (match) imageMap[match[1]] = true;
+                });
+
+                return new Response(JSON.stringify({ success: true, data: imageMap }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // --- Generate map image: POST /api/admin/area/:id/generate-map ---
+            if (subAction === 'generate-map' && method === 'POST' && id) {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ success: false, error: 'Invalid area ID' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Fetch active polygons for this area
+                const { data: polygons, error: polyError } = await adminSupabase
+                    .from('area_polygon')
+                    .select('coordinates')
+                    .eq('area_id', areaId)
+                    .eq('active', true);
+
+                if (polyError) throw polyError;
+
+                if (!polygons || polygons.length === 0) {
+                    return new Response(JSON.stringify({ success: false, error: 'No active polygons found for this area' }), {
+                        status: 404, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Convert coordinates to GeoJSON (matches logic in js/mapbox-controller.js:204-238)
+                function parseCoordinates(coordinateString) {
+                    try {
+                        const jsonPaths = JSON.parse(coordinateString);
+                        return [jsonPaths.map(coord => [coord.lng, coord.lat])];
+                    } catch (e) {
+                        return [
+                            coordinateString.trim().split(' ').map(coord => {
+                                const parts = coord.split(',');
+                                if (parts.length >= 2) {
+                                    return [parseFloat(parts[0]), parseFloat(parts[1])];
+                                }
+                                return null;
+                            }).filter(point => point !== null)
+                        ];
+                    }
+                }
+
+                const geojson = {
+                    type: 'FeatureCollection',
+                    features: polygons.map(p => {
+                        const coordinates = parseCoordinates(p.coordinates);
+                        return {
+                            type: 'Feature',
+                            properties: {
+                                fill: '#4299e1',
+                                'fill-opacity': 0.3,
+                                stroke: '#2b6cb0',
+                                'stroke-width': 2
+                            },
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: coordinates
+                            }
+                        };
+                    }).filter(f => f.geometry.coordinates[0] && f.geometry.coordinates[0].length > 0)
+                };
+
+                if (geojson.features.length === 0) {
+                    return new Response(JSON.stringify({ success: false, error: 'No valid polygon coordinates found' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Call Mapbox Static Images API (POST for large GeoJSON payloads)
+                const mapboxToken = env.MAPBOX_TOKEN;
+                if (!mapboxToken) {
+                    return new Response(JSON.stringify({ success: false, error: 'Mapbox token not configured' }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/auto/600x400@2x?access_token=${mapboxToken}`;
+                const mapResponse = await fetch(mapboxUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(geojson)
+                });
+
+                if (!mapResponse.ok) {
+                    const errorText = await mapResponse.text();
+                    console.error('Mapbox API error:', errorText);
+                    return new Response(JSON.stringify({ success: false, error: 'Failed to generate map image' }), {
+                        status: 502, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Upload to Supabase Storage
+                const imageBuffer = await mapResponse.arrayBuffer();
+                const { error: uploadError } = await adminSupabase.storage
+                    .from('area-maps')
+                    .upload(`${areaId}.png`, imageBuffer, {
+                        contentType: 'image/png',
+                        upsert: true
+                    });
+
+                if (uploadError) {
+                    console.error('Storage upload error:', uploadError);
+                    return new Response(JSON.stringify({ success: false, error: uploadError.message }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const imageUrl = `${env.SUPABASE_URL}/storage/v1/object/public/area-maps/${areaId}.png`;
+                return new Response(JSON.stringify({ success: true, data: { image_url: imageUrl } }), {
+                    status: 201, headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // --- Upload custom map image: POST /api/admin/area/:id/upload-map ---
+            if (subAction === 'upload-map' && method === 'POST' && id) {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ success: false, error: 'Invalid area ID' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const imageData = await request.arrayBuffer();
+                if (!imageData || imageData.byteLength === 0) {
+                    return new Response(JSON.stringify({ success: false, error: 'No image data provided' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const { error: uploadError } = await adminSupabase.storage
+                    .from('area-maps')
+                    .upload(`${areaId}.png`, imageData, {
+                        contentType: 'image/png',
+                        upsert: true
+                    });
+
+                if (uploadError) {
+                    return new Response(JSON.stringify({ success: false, error: uploadError.message }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const imageUrl = `${env.SUPABASE_URL}/storage/v1/object/public/area-maps/${areaId}.png`;
+                return new Response(JSON.stringify({ success: true, data: { image_url: imageUrl } }), {
+                    status: 201, headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // --- Delete map image: DELETE /api/admin/area/:id/map ---
+            if (subAction === 'map' && method === 'DELETE' && id) {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ success: false, error: 'Invalid area ID' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const { error: deleteError } = await adminSupabase.storage
+                    .from('area-maps')
+                    .remove([`${areaId}.png`]);
+
+                if (deleteError) {
+                    return new Response(JSON.stringify({ success: false, error: deleteError.message }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                return new Response(JSON.stringify({ success: true, message: 'Map image deleted' }), {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // --- Standard area CRUD (existing handlers below) ---
              if (method === 'GET') {
                 let query = adminSupabase.from('area').select('*, council:council_id (id, name, bulk_waste_url)');
 

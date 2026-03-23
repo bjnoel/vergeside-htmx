@@ -144,14 +144,20 @@
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Area List</h5>
-                    <div class="input-group" style="width: 300px;">
-                        <input type="text" class="form-control" id="search-input" placeholder="Search areas...">
-                        <button class="btn btn-outline-secondary" type="button" id="search-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-                            </svg>
+                    <h5 class="mb-0">
+                        Area List
+                        <span id="map-status-summary" class="badge bg-secondary ms-2 d-none" style="font-size: 0.7rem;"></span>
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary d-none" id="generate-all-btn">
+                            <i class="bi bi-images"></i> Generate All Missing
                         </button>
+                        <div class="input-group" style="width: 300px;">
+                            <input type="text" class="form-control" id="search-input" placeholder="Search areas...">
+                            <button class="btn btn-outline-secondary" type="button" id="search-btn">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,6 +171,7 @@
                                 <th>Name</th>
                                 <th>Sample Address</th>
                                 <th class="text-nowrap">Polygons</th>
+                                <th class="text-nowrap">Map</th>
                                 <th class="text-nowrap">Actions</th>
                             </tr>
                         </thead>
@@ -339,9 +346,9 @@
             const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
 
             let deleteAreaId = null;
-            let councilsData = []; // Global variable to store councils data
-            let currentSearchTerm = ''; // Track current search term
-            // let authToken = null; // Removed - will get token directly
+            let councilsData = [];
+            let currentSearchTerm = '';
+            let mapImageStatus = {}; // { areaId: true } for areas with map images
 
             // Check if user is authenticated (init runs synchronously now)
             if (!adminAuth.isAdmin()) {
@@ -357,10 +364,9 @@
             // Hide loading screen
             loadingElement.classList.add('d-none');
 
-            // Load councils for dropdown
+            // Load councils and map status, then areas
             await loadCouncils();
-
-            // Load areas
+            await loadMapStatus();
             loadAreas();
 
             // Load councils from database
@@ -443,6 +449,7 @@
                         noAreas.classList.add('d-none');
 
                         data.forEach(area => {
+                            const hasImage = mapImageStatus[String(area.id)] === true;
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td>${area.id}</td>
@@ -460,6 +467,14 @@
                                         <i class="bi bi-geo-alt"></i> Polygons
                                     </a>
                                 </td>
+                                <td class="text-nowrap text-center" id="map-cell-${area.id}">
+                                    ${hasImage
+                                        ? `<img src="/api/area/${area.id}/map" width="48" height="32" class="border rounded" style="cursor:pointer; object-fit:cover;" onclick="window.open('/api/area/${area.id}/map','_blank')" />`
+                                        : `<button class="btn btn-sm btn-outline-primary generate-map-btn" data-id="${area.id}">
+                                               <i class="bi bi-image"></i> Generate
+                                           </button>`
+                                    }
+                                </td>
                                 <td class="text-nowrap">
                                     <button class="btn btn-sm btn-primary edit-btn me-1" data-id="${area.id}">
                                         Edit
@@ -475,17 +490,42 @@
                         // Add event listeners to buttons
                         document.querySelectorAll('.edit-btn').forEach(btn => {
                             btn.addEventListener('click', (e) => {
-                                const id = e.target.getAttribute('data-id');
-                                openEditModal(id); // Removed token passing
+                                const id = e.target.closest('button').getAttribute('data-id');
+                                openEditModal(id);
                             });
                         });
 
                         document.querySelectorAll('.delete-btn').forEach(btn => {
                             btn.addEventListener('click', (e) => {
-                                const id = e.target.getAttribute('data-id');
+                                const id = e.target.closest('button').getAttribute('data-id');
                                 openDeleteConfirmation(id);
                             });
                         });
+
+                        document.querySelectorAll('.generate-map-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const id = e.target.closest('button').getAttribute('data-id');
+                                generateMap(id);
+                            });
+                        });
+
+                        // Update summary badge
+                        const total = data.length;
+                        const withImages = data.filter(a => mapImageStatus[String(a.id)]).length;
+                        const missing = total - withImages;
+                        const summaryEl = document.getElementById('map-status-summary');
+                        const generateAllBtn = document.getElementById('generate-all-btn');
+                        if (missing > 0) {
+                            summaryEl.textContent = `${missing} missing map image${missing !== 1 ? 's' : ''}`;
+                            summaryEl.className = 'badge bg-warning text-dark ms-2';
+                            summaryEl.classList.remove('d-none');
+                            generateAllBtn.classList.remove('d-none');
+                        } else {
+                            summaryEl.textContent = 'All maps present';
+                            summaryEl.className = 'badge bg-success ms-2';
+                            summaryEl.classList.remove('d-none');
+                            generateAllBtn.classList.add('d-none');
+                        }
                     }
                 } catch (error) {
                     console.error('Error loading areas:', error);
@@ -495,8 +535,96 @@
                 }
             }
 
+            // Load map image status for all areas
+            async function loadMapStatus() {
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) return;
+
+                    const response = await fetch('/api/admin/area/map-status-bulk', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        mapImageStatus = result.data || {};
+                    }
+                } catch (error) {
+                    console.error('Error loading map status:', error);
+                }
+            }
+
+            // Generate map image for a single area
+            async function generateMap(areaId) {
+                const cell = document.getElementById(`map-cell-${areaId}`);
+                if (cell) {
+                    cell.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                }
+
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+
+                    const response = await fetch(`/api/admin/area/${areaId}/generate-map`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Failed to generate map');
+                    }
+
+                    showToast(`Map generated for area ${areaId}`, 'success');
+                    mapImageStatus[String(areaId)] = true;
+
+                    // Update cell with the new image
+                    if (cell) {
+                        cell.innerHTML = `<img src="/api/area/${areaId}/map?t=${Date.now()}" width="48" height="32" class="border rounded" style="cursor:pointer; object-fit:cover;" onclick="window.open('/api/area/${areaId}/map','_blank')" />`;
+                    }
+                } catch (error) {
+                    console.error(`Error generating map for area ${areaId}:`, error);
+                    showToast(`Failed to generate map: ${error.message}`, 'danger');
+                    if (cell) {
+                        cell.innerHTML = `<button class="btn btn-sm btn-outline-danger generate-map-btn" data-id="${areaId}">
+                            <i class="bi bi-exclamation-triangle"></i> Retry
+                        </button>`;
+                        cell.querySelector('.generate-map-btn').addEventListener('click', () => generateMap(areaId));
+                    }
+                }
+            }
+
+            // Generate all missing map images
+            async function generateAllMissing() {
+                const btns = document.querySelectorAll('.generate-map-btn');
+                const ids = Array.from(btns).map(b => b.getAttribute('data-id'));
+
+                if (ids.length === 0) {
+                    showToast('No missing maps to generate', 'info');
+                    return;
+                }
+
+                const generateAllBtn = document.getElementById('generate-all-btn');
+                generateAllBtn.disabled = true;
+                generateAllBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Generating 0/${ids.length}...`;
+
+                let completed = 0;
+                for (const id of ids) {
+                    await generateMap(id);
+                    completed++;
+                    generateAllBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Generating ${completed}/${ids.length}...`;
+                }
+
+                generateAllBtn.disabled = false;
+                generateAllBtn.innerHTML = '<i class="bi bi-images"></i> Generate All Missing';
+
+                // Refresh status
+                await loadMapStatus();
+                loadAreas(currentSearchTerm);
+            }
+
             // Add new area
-            async function addArea(e) { // Removed token parameter
+            async function addArea(e) {
                 e.preventDefault();
 
                 const name = document.getElementById('area-name').value.trim();
@@ -925,7 +1053,8 @@
                     searchAreas();
                 }
             });
-            
+            document.getElementById('generate-all-btn').addEventListener('click', generateAllMissing);
+
             // Add event listeners for council selection to toggle sample address visibility
             councilSelect.addEventListener('change', (e) => {
                 toggleSampleAddressVisibility(e.target.value, false);

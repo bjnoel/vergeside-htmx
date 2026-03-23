@@ -165,7 +165,7 @@ serve(async (req) => {
                   ${data.areas.map((area: any) => `
                     <div class="area">
                       <div class="area-name">${area.name}</div>
-                      <img src="https://www.vergeside.com.au/api/area/${area.id}/map" alt="${area.name} map" class="map-image" />
+                      <img src="https://www.vergeside.com.au/api/area/${area.id}/map" alt="${area.name} map" class="map-image" width="600" height="400" />
                     </div>
                   `).join('')}
                   ${data.council?.bulk_waste_url ? `
