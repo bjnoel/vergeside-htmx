@@ -462,10 +462,9 @@
                                     <div class="d-flex align-items-center gap-1">
                                         <input type="text" class="form-control form-control-sm sample-addr-input" data-id="${area.id}" data-council-id="${area.council_id}"
                                             value="${(area.sample_address || '').replace(/"/g, '&quot;')}" placeholder="Not set" style="min-width:160px; font-size:0.8rem;">
-                                        ${!area.sample_address ?
-                                            `<button class="btn btn-sm btn-outline-success generate-addr-btn" data-id="${area.id}" title="Generate from polygon centroid">
-                                                <i class="bi bi-geo-alt-fill"></i>
-                                            </button>` : ''}
+                                        <button class="btn btn-sm btn-outline-success generate-addr-btn" data-id="${area.id}" title="${area.sample_address ? 'Regenerate from polygon centroid' : 'Generate from polygon centroid'}">
+                                            <i class="bi bi-geo-alt-fill"></i>
+                                        </button>
                                         ${area.sample_address && area.council && area.council.bulk_waste_url ?
                                             `<button class="btn btn-sm btn-outline-info" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
                                                 <i class="bi bi-search"></i>
