@@ -149,8 +149,11 @@
                         <span id="map-status-summary" class="badge bg-secondary ms-2 d-none" style="font-size: 0.7rem;"></span>
                     </h5>
                     <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success d-none" id="generate-all-addresses-btn">
+                            <i class="bi bi-geo-alt-fill"></i> Generate All Missing Addresses
+                        </button>
                         <button class="btn btn-sm btn-outline-primary d-none" id="generate-all-btn">
-                            <i class="bi bi-images"></i> Generate All Missing
+                            <i class="bi bi-images"></i> Generate All Missing Maps
                         </button>
                         <div class="input-group" style="width: 300px;">
                             <input type="text" class="form-control" id="search-input" placeholder="Search areas...">
@@ -455,10 +458,14 @@
                                 <td>${area.id}</td>
                                 <td>${area.council ? area.council.name : 'N/A'}</td>
                                 <td>${area.name}</td>
-                                <td>
+                                <td id="addr-cell-${area.id}">
                                     <div class="d-flex align-items-center gap-1">
                                         <input type="text" class="form-control form-control-sm sample-addr-input" data-id="${area.id}" data-council-id="${area.council_id}"
                                             value="${(area.sample_address || '').replace(/"/g, '&quot;')}" placeholder="Not set" style="min-width:160px; font-size:0.8rem;">
+                                        ${!area.sample_address ?
+                                            `<button class="btn btn-sm btn-outline-success generate-addr-btn" data-id="${area.id}" title="Generate from polygon centroid">
+                                                <i class="bi bi-geo-alt-fill"></i>
+                                            </button>` : ''}
                                         ${area.sample_address && area.council && area.council.bulk_waste_url ?
                                             `<button class="btn btn-sm btn-outline-info" onclick="lookupAddress('${area.sample_address.replace(/'/g, "\\'")}', '${area.council.bulk_waste_url}')">
                                                 <i class="bi bi-search"></i>
@@ -524,6 +531,13 @@
                             });
                         });
 
+                        document.querySelectorAll('.generate-addr-btn').forEach(btn => {
+                            btn.addEventListener('click', (e) => {
+                                const id = e.target.closest('button').getAttribute('data-id');
+                                generateAddress(id);
+                            });
+                        });
+
                         // Inline sample address editing — save on blur or Enter
                         document.querySelectorAll('.sample-addr-input').forEach(input => {
                             const origVal = input.value;
@@ -538,14 +552,14 @@
                             });
                         });
 
-                        // Update summary badge
+                        // Update summary badges
                         const total = data.length;
                         const withImages = data.filter(a => mapImageStatus[String(a.id)]).length;
-                        const missing = total - withImages;
+                        const missingMaps = total - withImages;
                         const summaryEl = document.getElementById('map-status-summary');
                         const generateAllBtn = document.getElementById('generate-all-btn');
-                        if (missing > 0) {
-                            summaryEl.textContent = `${missing} missing map image${missing !== 1 ? 's' : ''}`;
+                        if (missingMaps > 0) {
+                            summaryEl.textContent = `${missingMaps} missing map${missingMaps !== 1 ? 's' : ''}`;
                             summaryEl.className = 'badge bg-warning text-dark ms-2';
                             summaryEl.classList.remove('d-none');
                             generateAllBtn.classList.remove('d-none');
@@ -554,6 +568,16 @@
                             summaryEl.className = 'badge bg-success ms-2';
                             summaryEl.classList.remove('d-none');
                             generateAllBtn.classList.add('d-none');
+                        }
+
+                        // Address summary
+                        const missingAddrs = data.filter(a => !a.sample_address).length;
+                        const generateAllAddrsBtn = document.getElementById('generate-all-addresses-btn');
+                        if (missingAddrs > 0) {
+                            generateAllAddrsBtn.classList.remove('d-none');
+                            generateAllAddrsBtn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Generate ${missingAddrs} Missing Address${missingAddrs !== 1 ? 'es' : ''}`;
+                        } else {
+                            generateAllAddrsBtn.classList.add('d-none');
                         }
                     }
                 } catch (error) {
@@ -693,6 +717,88 @@
 
                 // Refresh status
                 await loadMapStatus();
+                loadAreas(currentSearchTerm);
+            }
+
+            // Generate sample address from polygon centroid
+            async function generateAddress(areaId) {
+                const cell = document.getElementById(`addr-cell-${areaId}`);
+                const btn = cell ? cell.querySelector('.generate-addr-btn') : null;
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                }
+
+                try {
+                    const token = adminAuth.getAccessToken();
+                    if (!token) throw new Error('Not authenticated');
+
+                    const response = await fetch(`/api/admin/area/${areaId}/generate-address`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    let result;
+                    const responseText = await response.text();
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+                    }
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Failed to generate address');
+                    }
+
+                    showToast(`Address generated: ${result.data.address}`, 'success');
+
+                    // Update the input and remove the generate button
+                    if (cell) {
+                        const input = cell.querySelector('.sample-addr-input');
+                        if (input) input.value = result.data.address;
+                        if (btn) btn.remove();
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error(`Error generating address for area ${areaId}:`, error);
+                    showToast(`Failed to generate address: ${error.message}`, 'danger');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>';
+                    }
+                    return false;
+                }
+            }
+
+            // Generate all missing sample addresses
+            async function generateAllMissingAddresses() {
+                const btns = document.querySelectorAll('.generate-addr-btn');
+                const ids = Array.from(btns).map(b => b.getAttribute('data-id'));
+
+                if (ids.length === 0) {
+                    showToast('No missing addresses to generate', 'info');
+                    return;
+                }
+
+                const bulkBtn = document.getElementById('generate-all-addresses-btn');
+                bulkBtn.disabled = true;
+                bulkBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Generating 0/${ids.length}...`;
+
+                let completed = 0;
+                for (const id of ids) {
+                    await generateAddress(id);
+                    completed++;
+                    bulkBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Generating ${completed}/${ids.length}...`;
+                    // Nominatim rate limit: max 1 request/second
+                    if (completed < ids.length) {
+                        await new Promise(r => setTimeout(r, 1100));
+                    }
+                }
+
+                bulkBtn.disabled = false;
+                bulkBtn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Generate All Missing Addresses';
+
+                // Refresh
                 loadAreas(currentSearchTerm);
             }
 
@@ -1127,6 +1233,7 @@
                 }
             });
             document.getElementById('generate-all-btn').addEventListener('click', generateAllMissing);
+            document.getElementById('generate-all-addresses-btn').addEventListener('click', generateAllMissingAddresses);
 
             // Add event listeners for council selection to toggle sample address visibility
             councilSelect.addEventListener('change', (e) => {

@@ -578,6 +578,127 @@ export async function onRequest(context) {
                 });
             }
 
+            // --- Generate sample address from polygon centroid: POST /api/admin/area/:id/generate-address ---
+            if (subAction === 'generate-address' && method === 'POST' && id) {
+              try {
+                const areaId = parseInt(id, 10);
+                if (isNaN(areaId)) {
+                    return new Response(JSON.stringify({ success: false, error: 'Invalid area ID' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Fetch active polygons for this area
+                const { data: polygons, error: polyError } = await adminSupabase
+                    .from('area_polygon')
+                    .select('coordinates')
+                    .eq('area_id', areaId)
+                    .eq('active', true);
+
+                if (polyError) {
+                    return new Response(JSON.stringify({ success: false, error: `DB error: ${polyError.message}` }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                if (!polygons || polygons.length === 0) {
+                    return new Response(JSON.stringify({ success: false, error: 'No active polygons found for this area' }), {
+                        status: 404, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Parse all polygon coordinates and collect all points
+                const allPoints = [];
+                for (const p of polygons) {
+                    let ring;
+                    try {
+                        const jsonPaths = JSON.parse(p.coordinates);
+                        ring = jsonPaths.map(coord => ({ lng: coord.lng, lat: coord.lat }));
+                    } catch (e) {
+                        ring = p.coordinates.trim().split(/\s+/).map(coord => {
+                            const parts = coord.split(',');
+                            if (parts.length >= 2) {
+                                return { lng: parseFloat(parts[0]), lat: parseFloat(parts[1]) };
+                            }
+                            return null;
+                        }).filter(pt => pt !== null);
+                    }
+                    allPoints.push(...ring);
+                }
+
+                if (allPoints.length === 0) {
+                    return new Response(JSON.stringify({ success: false, error: 'No valid coordinates found' }), {
+                        status: 400, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Calculate centroid (average of all points)
+                const centroid = {
+                    lat: allPoints.reduce((sum, p) => sum + p.lat, 0) / allPoints.length,
+                    lng: allPoints.reduce((sum, p) => sum + p.lng, 0) / allPoints.length
+                };
+
+                // Reverse geocode via Nominatim
+                const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${centroid.lat}&lon=${centroid.lng}&addressdetails=1&zoom=18`;
+                const geoResponse = await fetch(nominatimUrl, {
+                    headers: { 'User-Agent': 'Vergeside Admin (vergeside.com.au)' }
+                });
+
+                if (!geoResponse.ok) {
+                    return new Response(JSON.stringify({ success: false, error: `Nominatim error (${geoResponse.status})` }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                const geoData = await geoResponse.json();
+                let address = '';
+                if (geoData && geoData.address) {
+                    const a = geoData.address;
+                    const parts = [
+                        a.house_number,
+                        a.road,
+                        a.suburb || a.town || a.city_district,
+                        a.postcode
+                    ].filter(Boolean);
+                    address = parts.join(' ');
+                } else if (geoData && geoData.display_name) {
+                    address = geoData.display_name;
+                }
+
+                if (!address) {
+                    return new Response(JSON.stringify({ success: false, error: 'Could not resolve address from centroid' }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                // Update area's sample_address
+                const { error: updateError } = await adminSupabase
+                    .from('area')
+                    .update({ sample_address: address })
+                    .eq('id', areaId);
+
+                if (updateError) {
+                    return new Response(JSON.stringify({ success: false, error: `Update error: ${updateError.message}` }), {
+                        status: 500, headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+
+                return new Response(JSON.stringify({
+                    success: true,
+                    data: {
+                        address,
+                        centroid,
+                        point_count: allPoints.length
+                    }
+                }), { headers: { 'Content-Type': 'application/json' } });
+              } catch (genError) {
+                console.error('Generate address error:', genError);
+                return new Response(JSON.stringify({ success: false, error: `Generate failed: ${genError.message}` }), {
+                    status: 500, headers: { 'Content-Type': 'application/json' }
+                });
+              }
+            }
+
             // --- Standard area CRUD (existing handlers below) ---
              if (method === 'GET') {
                 let query = adminSupabase.from('area').select('*, council:council_id (id, name, bulk_waste_url)');
