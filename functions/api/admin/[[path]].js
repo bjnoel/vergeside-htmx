@@ -441,7 +441,7 @@ export async function onRequest(context) {
                     });
                 }
 
-                const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/auto/600x400@2x?access_token=${mapboxToken}`;
+                const mapboxUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/auto/600x400?padding=20&access_token=${mapboxToken}`;
                 const mapResponse = await fetch(mapboxUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
