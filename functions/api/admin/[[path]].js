@@ -414,9 +414,9 @@ export async function onRequest(context) {
                         return {
                             type: 'Feature',
                             properties: {
-                                fill: '#4299e1',
+                                fill: '#ff4000',
                                 'fill-opacity': 0.3,
-                                stroke: '#2b6cb0',
+                                stroke: '#ff4000',
                                 'stroke-width': 2
                             },
                             geometry: {
