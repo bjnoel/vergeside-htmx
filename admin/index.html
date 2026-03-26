@@ -301,21 +301,13 @@
 
                     const headers = { 'Authorization': `Bearer ${token}` };
 
-                    // Get counts using server API endpoints instead of direct Supabase calls
-                    const [councilResponse, areaResponse, pickupResponse] = await Promise.all([
-                        fetch('/api/admin/council', { headers }),
-                        fetch('/api/admin/area', { headers }),
-                        fetch('/api/admin/area_pickup', { headers }) // Assuming this endpoint exists and needs auth
-                    ]);
+                    // Get counts using dedicated stats endpoint
+                    const statsResponse = await fetch('/api/admin/stats', { headers });
+                    const statsData = await statsResponse.json();
 
-                    const councilData = await councilResponse.json();
-                    const areaData = await areaResponse.json();
-                    const pickupData = await pickupResponse.json();
-                    
-                    // Update counts on the dashboard
-                    councilCount.textContent = councilData.data?.length || 0;
-                    areaCount.textContent = areaData.data?.length || 0;
-                    pickupCount.textContent = pickupData.data?.length || 0;
+                    councilCount.textContent = statsData.data?.councils || 0;
+                    areaCount.textContent = statsData.data?.areas || 0;
+                    pickupCount.textContent = statsData.data?.pickups || 0;
                     // Get upcoming pickups - use API endpoint
                     const today = new Date().toISOString().split('T')[0];
                     const response = await fetch(`/api/admin/area_pickup?filter=future`, { headers }); // Add headers

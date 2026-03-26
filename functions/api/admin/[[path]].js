@@ -156,7 +156,23 @@ export async function onRequest(context) {
         // Placeholder for routing logic
         console.log(`Admin API request: ${method} /api/admin/${pathSegments.join('/')}`);
 
-        if (resource === 'council') {
+        if (resource === 'stats' && method === 'GET') {
+            const [councilResult, areaResult, pickupResult] = await Promise.all([
+                adminSupabase.from('council').select('*', { count: 'exact', head: true }),
+                adminSupabase.from('area').select('*', { count: 'exact', head: true }),
+                adminSupabase.from('area_pickup').select('*', { count: 'exact', head: true }),
+            ]);
+
+            return new Response(JSON.stringify({
+                success: true,
+                data: {
+                    councils: councilResult.count || 0,
+                    areas: areaResult.count || 0,
+                    pickups: pickupResult.count || 0,
+                }
+            }), { headers: { 'Content-Type': 'application/json' } });
+        }
+        else if (resource === 'council') {
             // TODO: Migrate logic from api/admin/council.js
             if (method === 'GET') {
                 // If ID is provided, get specific council
